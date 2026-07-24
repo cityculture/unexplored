@@ -24,11 +24,18 @@ const processEnv = {
   NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV,
 };
 
+const isSkipValidation = process.env.SKIP_ENV_VALIDATION === 'true' || process.env.SKIP_ENV_VALIDATION === '1';
+
 const parsed = publicEnvSchema.safeParse(processEnv);
 
 if (!parsed.success) {
-  console.error('❌ Invalid public environment variables:', parsed.error.flatten().fieldErrors);
-  throw new Error('Invalid public environment variables');
+  if (isSkipValidation) {
+    console.warn('⚠️ Skipping environment variable validation due to SKIP_ENV_VALIDATION flag.');
+  } else {
+    console.error('❌ Invalid public environment variables:', parsed.error.flatten().fieldErrors);
+    throw new Error('Invalid public environment variables');
+  }
 }
 
-export const env = parsed.data;
+export const env = (isSkipValidation && !parsed.success) ? (processEnv as unknown as z.infer<typeof publicEnvSchema>) : parsed.data!;
+

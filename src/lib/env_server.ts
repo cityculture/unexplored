@@ -24,11 +24,18 @@ const processEnv = {
   RESEND_API_KEY: process.env.RESEND_API_KEY,
 };
 
+const isSkipValidation = process.env.SKIP_ENV_VALIDATION === 'true' || process.env.SKIP_ENV_VALIDATION === '1';
+
 const parsed = envSchema.safeParse(processEnv);
 
 if (!parsed.success) {
-  console.error('❌ Invalid environment variables:', parsed.error.flatten().fieldErrors);
-  throw new Error('Invalid environment variables');
+  if (isSkipValidation) {
+    console.warn('⚠️ Skipping environment variable validation due to SKIP_ENV_VALIDATION flag.');
+  } else {
+    console.error('❌ Invalid environment variables:', parsed.error.flatten().fieldErrors);
+    throw new Error('Invalid environment variables');
+  }
 }
 
-export const env = parsed.data;
+export const env = (isSkipValidation && !parsed.success) ? (processEnv as unknown as z.infer<typeof envSchema>) : parsed.data!;
+
