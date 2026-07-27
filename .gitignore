@@ -16,6 +16,8 @@ yarn-debug.log*
 
 # local env files
 .env*.local
+*firebase-adminsdk*.json
+*.service-account.json
 
 # misc
 .DS_Store

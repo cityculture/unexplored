@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
@@ -6,12 +6,7 @@ export async function GET(
   { params }: { params: Promise<{ ticketNumber: string }> }
 ) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const supabase = supabaseAdmin
 
     const { ticketNumber } = await params
 
@@ -34,10 +29,6 @@ export async function GET(
 
     if (error || !ticket) {
       return NextResponse.json({ error: 'Ticket not found' }, { status: 404 })
-    }
-
-    if (ticket.bookings?.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const result = {

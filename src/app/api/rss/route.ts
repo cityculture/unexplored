@@ -1,8 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
-  const supabase = await createClient()
+  const supabase = supabaseAdmin
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.cityculture.in'
 
   // Fetch 50 latest published events

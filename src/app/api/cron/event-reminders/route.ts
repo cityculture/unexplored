@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '../../../../lib/supabase/server';
+import { supabaseAdmin } from '../../../../lib/supabase/admin';
 import { sendNotification } from '../../../../lib/notifications/send';
 
 /**
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
 
   try {
     // 2. Fetch events starting in 24 hours (23h to 25h range)

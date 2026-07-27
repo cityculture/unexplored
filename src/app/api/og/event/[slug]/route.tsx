@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og'
-import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export const runtime = 'edge'
 
@@ -9,7 +9,7 @@ export async function GET(
 ) {
   const { slug } = await params
   try {
-    const supabase = await createClient()
+    const supabase = supabaseAdmin
     const { data: event } = await supabase
       .from('v_events_public')
       .select('title, start_datetime, city, cover_image_url, category_name, host_display_name')

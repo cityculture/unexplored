@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { VEventsPublic } from '@/types'
 
 export async function GET(request: NextRequest) {
@@ -14,10 +14,11 @@ export async function GET(request: NextRequest) {
   const max_price = searchParams.get('max_price')
   const event_type = searchParams.get('event_type')
   const past = searchParams.get('past') === 'true'
+  const sort = searchParams.get('sort') || 'date_asc'
   const page = parseInt(searchParams.get('page') || '1', 10)
-  const pageSize = parseInt(searchParams.get('pageSize') || '12', 10)
+  const limit = parseInt(searchParams.get('limit') || '12', 10)
 
-  const supabase = await createClient()
+  const supabase = supabaseAdmin
 
   let query = supabase
     .from('v_events_public')
@@ -75,8 +76,8 @@ export async function GET(request: NextRequest) {
     .order('start_datetime', { ascending: true })
 
   // Pagination
-  const from = (page - 1) * pageSize
-  const to = from + pageSize - 1
+  const from = (page - 1) * limit
+  const to = from + limit - 1
   query = query.range(from, to)
 
   const { data, error, count } = await query
@@ -87,13 +88,13 @@ export async function GET(request: NextRequest) {
   }
 
   const total = count || 0
-  const hasMore = total > page * pageSize
+  const hasMore = total > page * limit
 
   return NextResponse.json({
     events: data || [],
     total,
     page,
-    pageSize,
+    pageSize: limit,
     hasMore,
   })
 }

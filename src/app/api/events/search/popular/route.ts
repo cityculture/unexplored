@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export async function GET() {
-  const supabase = await createClient()
+  const supabase = supabaseAdmin
 
   // Fetch most common keywords from saved_searches
   // Note: Standard Supabase client doesn't support GROUP BY easily in select()

@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og'
-import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export const runtime = 'edge'
 
@@ -9,7 +9,7 @@ export async function GET(
 ) {
   const { username } = await params
   try {
-    const supabase = await createClient()
+    const supabase = supabaseAdmin
     const { data: host, error } = await supabase
       .from('host_pages')
       .select(`

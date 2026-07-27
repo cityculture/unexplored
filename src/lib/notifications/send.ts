@@ -1,4 +1,4 @@
-import { createClient } from '../supabase/server'
+import { supabaseAdmin } from '../supabase/admin'
 
 /**
  * Sends a notification to a specific user.
@@ -16,7 +16,7 @@ export async function sendNotification(
   type: string,
   vars: Record<string, string>
 ) {
-  const supabase = await createClient();
+  const supabase = supabaseAdmin;
 
   // 1. Fetch template from notification_templates
   const { data: template, error: templateError } = await supabase

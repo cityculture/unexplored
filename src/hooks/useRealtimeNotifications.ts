@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '../lib/supabase/client'
-import { toast } from 'sonner'
 
 export function useRealtimeNotifications(userId: string | undefined) {
   const [unreadCount, setUnreadCount] = useState(0)
@@ -42,15 +41,7 @@ export function useRealtimeNotifications(userId: string | undefined) {
         },
         (payload: { new: { title: string; body: string; action_url?: string } }) => {
           const notification = payload.new
-          toast(notification.title, {
-            description: notification.body,
-            action: notification.action_url ? {
-              label: 'View',
-              onClick: () => {
-                if (notification.action_url) window.location.href = notification.action_url;
-              }
-            } : undefined
-          })
+          console.log('[Notification Received]', notification.title, notification.body)
           setUnreadCount(prev => prev + 1)
         }
       )
