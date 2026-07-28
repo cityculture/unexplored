@@ -28,14 +28,14 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") || ""
 
 serve(async (req: Request) => {
   try {
-    const { 
-      notification_id, 
-      user_id, 
-      subject, 
-      body, 
-      action_url, 
+    const {
+      notification_id,
+      user_id,
+      subject,
+      body,
+      action_url,
       meta_data,
-      recipient_email 
+      recipient_email
     }: EmailRequest = await req.json()
 
     // 1. Initialize Supabase client
@@ -54,7 +54,7 @@ serve(async (req: Request) => {
         .select("email, username")
         .eq("id", user_id)
         .single()
-      
+
       if (!userError && user) {
         recipientEmail = user.email
         recipientName = (user as any).username || "there"
