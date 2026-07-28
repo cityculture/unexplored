@@ -113,7 +113,7 @@ export async function POST(req: Request) {
       recipient_name: full_name || finalUsername,
       subject: 'Welcome to City Culture! 🎉',
       body: `Welcome to City Culture! We're thrilled to have you join our community. Explore curated events, connect with fellow members, and discover unforgettable experiences in your city.`,
-      action_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.cityculture.in'}/members/dashboard`,
+      action_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.cityculture.in'}/members/dashboard`,
       action_text: 'Explore City Culture',
     })
 
