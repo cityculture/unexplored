@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { firebaseAdminAuth } from '@/lib/firebase/admin'
+import { getFirebaseAdminAuth } from '@/lib/firebase/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendResendEmail } from '@/lib/resend'
 import { SupabaseClient } from '@supabase/supabase-js'
@@ -25,7 +25,8 @@ export async function POST(req: Request) {
     // 1. Verify Firebase ID Token on server with explicit safety
     let decodedToken: any
     try {
-      decodedToken = await firebaseAdminAuth.verifyIdToken(idToken)
+      const auth = getFirebaseAdminAuth()
+      decodedToken = await auth.verifyIdToken(idToken)
     } catch (tokenErr: any) {
       console.error('Firebase verifyIdToken error:', tokenErr)
       return NextResponse.json(

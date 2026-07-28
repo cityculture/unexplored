@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { firebaseAdminAuth } from '@/lib/firebase/admin'
+import { getFirebaseAdminAuth } from '@/lib/firebase/admin'
 import { v5 as uuidv5 } from 'uuid'
 
 const FIREBASE_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
     const idToken = authHeader.split('Bearer ')[1]
     let decodedToken: any
     try {
-      decodedToken = await firebaseAdminAuth.verifyIdToken(idToken)
+      const auth = getFirebaseAdminAuth()
+      decodedToken = await auth.verifyIdToken(idToken)
     } catch (tokenErr: any) {
       console.error('Firebase verifyIdToken error in /api/events:', tokenErr)
       return NextResponse.json({ error: `Unauthorized: ${tokenErr?.message || 'Invalid token'}` }, { status: 401 })
