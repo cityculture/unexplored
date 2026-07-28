@@ -65,7 +65,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  serverExternalPackages: ['razorpay'],
+  serverExternalPackages: ['firebase-admin', 'jwks-rsa', 'jose', 'razorpay'],
   experimental: {
     serverActions: {
       bodySizeLimit: '5MB',
