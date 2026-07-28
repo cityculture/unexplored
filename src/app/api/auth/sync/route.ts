@@ -53,6 +53,41 @@ export async function POST(req: Request) {
       console.error('Database select error in /api/auth/sync:', selectError)
     }
 
+    // Ensure user exists in auth.users for Supabase Auth compatibility
+    const targetUserId = existingUser ? existingUser.id : supabaseUid
+    try {
+      const { data: authUserData } = await (supabaseAdmin as AppSupabaseClient).auth.admin.getUserById(targetUserId)
+      if (!authUserData?.user) {
+        await (supabaseAdmin as AppSupabaseClient).auth.admin.createUser({
+          id: targetUserId,
+          email: email,
+          email_confirm: true,
+          user_metadata: {
+            full_name: full_name || '',
+            avatar_url: avatar_url || '',
+          },
+        })
+      }
+    } catch (authErr: any) {
+      console.log('Ensure auth.users entry log:', authErr?.message || authErr)
+    }
+
+    // Generate magiclink token to issue Supabase auth session cookie on frontend
+    let hashed_token: string | null = null
+    try {
+      const { data: linkData, error: linkError } = await (supabaseAdmin as AppSupabaseClient).auth.admin.generateLink({
+        type: 'magiclink',
+        email: email,
+      })
+      if (!linkError && linkData?.properties?.hashed_token) {
+        hashed_token = linkData.properties.hashed_token
+      } else if (linkError) {
+        console.error('generateLink error in /api/auth/sync:', linkError)
+      }
+    } catch (linkErr) {
+      console.error('generateLink exception in /api/auth/sync:', linkErr)
+    }
+
     if (existingUser) {
       // User exists - update last active timestamp / details
       await (supabaseAdmin as AppSupabaseClient)
@@ -75,7 +110,7 @@ export async function POST(req: Request) {
         console.error('Send login email failed silently:', emailErr)
       }
 
-      return NextResponse.json({ success: true, isNew: false, userId: existingUser.id })
+      return NextResponse.json({ success: true, isNew: false, userId: existingUser.id, hashed_token })
     }
 
     // 3. New User - Create unique username and anonymous alias
@@ -139,9 +174,10 @@ export async function POST(req: Request) {
       console.error('Send welcome email failed silently:', welcomeErr)
     }
 
-    return NextResponse.json({ success: true, isNew: true, userId: supabaseUid })
+    return NextResponse.json({ success: true, isNew: true, userId: supabaseUid, hashed_token })
   } catch (err: any) {
     console.error('API /api/auth/sync Error:', err)
     return NextResponse.json({ error: err?.message || 'Authentication synchronization failed' }, { status: 500 })
   }
 }
+

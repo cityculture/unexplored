@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch Tiers & Calculate Total
     let totalAmount = 0
-    const tierIds = items.map((i: any) => i.tier_id)
+    const tierIds = items.map((i: any) => i.tier_id || i.ticket_tier_id)
     const { data: tiers } = await supabaseAdmin
       .from('ticket_tiers')
       .select('*')
@@ -86,10 +86,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Selected ticket tiers not found' }, { status: 400 })
     }
 
+    const bookingItemsToInsert: any[] = []
     for (const item of items) {
-      const tier = tiers.find(t => t.id === item.tier_id)
+      const tierId = item.tier_id || item.ticket_tier_id
+      const tier = tiers.find(t => t.id === tierId)
       if (tier) {
-        totalAmount += Number(tier.price) * item.quantity
+        const itemPrice = Number(tier.price)
+        totalAmount += itemPrice * item.quantity
+        bookingItemsToInsert.push({
+          ticket_tier_id: tier.id,
+          quantity: item.quantity,
+          unit_price: itemPrice,
+          total_price: itemPrice * item.quantity
+        })
       }
     }
 
@@ -122,6 +131,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create booking' }, { status: 500 })
     }
 
+    // Insert booking items into booking_items table
+    if (bookingItemsToInsert.length > 0) {
+      const { error: itemsError } = await supabaseAdmin
+        .from('booking_items')
+        .insert(bookingItemsToInsert.map(bi => ({ ...bi, booking_id: booking.id })) as any)
+      
+      if (itemsError) {
+        console.error('Booking Items Insertion Error:', itemsError)
+      }
+    }
+
     // If Free/RSVP
     if (totalAmount === 0) {
       return NextResponse.json({
@@ -142,6 +162,12 @@ export async function POST(request: NextRequest) {
       currency: 'INR',
       receipt: booking.booking_ref,
     })
+
+    // Update booking record with razorpay_order_id
+    await supabaseAdmin
+      .from('bookings')
+      .update({ razorpay_order_id: razorpayOrder.id } as any)
+      .eq('id', booking.id)
 
     return NextResponse.json({
       success: true,
