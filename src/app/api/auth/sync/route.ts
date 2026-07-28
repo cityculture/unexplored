@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getFirebaseAdminAuth } from '@/lib/firebase/admin'
+import { verifyFirebaseToken } from '@/lib/firebase/verify-token'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendResendEmail } from '@/lib/resend'
 import { SupabaseClient } from '@supabase/supabase-js'
@@ -22,13 +22,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'idToken is required' }, { status: 400 })
     }
 
-    // 1. Verify Firebase ID Token on server with explicit safety
-    let decodedToken: any
+    // 1. Verify Firebase ID Token using native Web Crypto & jose (zero CommonJS/jwks-rsa errors)
+    let decodedToken
     try {
-      const auth = getFirebaseAdminAuth()
-      decodedToken = await auth.verifyIdToken(idToken)
+      decodedToken = await verifyFirebaseToken(idToken)
     } catch (tokenErr: any) {
-      console.error('Firebase verifyIdToken error:', tokenErr)
+      console.error('Firebase verifyFirebaseToken error:', tokenErr)
       return NextResponse.json(
         { error: `Authentication token verification failed: ${tokenErr?.message || 'Invalid session token'}` },
         { status: 401 }
