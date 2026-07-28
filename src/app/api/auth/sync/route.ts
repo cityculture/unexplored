@@ -22,8 +22,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'idToken is required' }, { status: 400 })
     }
 
-    // 1. Verify Firebase ID Token on server
-    const decodedToken = await firebaseAdminAuth.verifyIdToken(idToken)
+    // 1. Verify Firebase ID Token on server with explicit safety
+    let decodedToken: any
+    try {
+      decodedToken = await firebaseAdminAuth.verifyIdToken(idToken)
+    } catch (tokenErr: any) {
+      console.error('Firebase verifyIdToken error:', tokenErr)
+      return NextResponse.json(
+        { error: `Authentication token verification failed: ${tokenErr?.message || 'Invalid session token'}` },
+        { status: 401 }
+      )
+    }
+
     const uid = decodedToken.uid
     const supabaseUid = uuidv5(uid, FIREBASE_NAMESPACE)
     const email = decodedToken.email || providedEmail
@@ -33,11 +43,15 @@ export async function POST(req: Request) {
     }
 
     // 2. Check if user already exists in public.users table
-    const { data: existingUser } = await (supabaseAdmin as AppSupabaseClient)
+    const { data: existingUser, error: selectError } = await (supabaseAdmin as AppSupabaseClient)
       .from('users')
       .select('id, email, username, full_name')
       .or(`id.eq.${supabaseUid},email.eq.${email}`)
       .maybeSingle()
+
+    if (selectError) {
+      console.error('Database select error in /api/auth/sync:', selectError)
+    }
 
     if (existingUser) {
       // User exists - update last active timestamp / details
@@ -50,12 +64,16 @@ export async function POST(req: Request) {
         .eq('id', existingUser.id)
 
       // Trigger login notification email via Resend
-      await sendResendEmail({
-        to: email,
-        recipient_name: existingUser.full_name || existingUser.username || 'Member',
-        subject: 'Security Alert: New Sign-In to City Culture',
-        body: `We noticed a new sign-in to your City Culture account (${email}) on ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST. If this was you, no action is needed.`,
-      })
+      try {
+        await sendResendEmail({
+          to: email,
+          recipient_name: existingUser.full_name || existingUser.username || 'Member',
+          subject: 'Security Alert: New Sign-In to City Culture',
+          body: `We noticed a new sign-in to your City Culture account (${email}) on ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST. If this was you, no action is needed.`,
+        })
+      } catch (emailErr) {
+        console.error('Send login email failed silently:', emailErr)
+      }
 
       return NextResponse.json({ success: true, isNew: false, userId: existingUser.id })
     }
@@ -108,14 +126,18 @@ export async function POST(req: Request) {
     }
 
     // 5. Send Welcome Email via Resend
-    await sendResendEmail({
-      to: email,
-      recipient_name: full_name || finalUsername,
-      subject: 'Welcome to City Culture! 🎉',
-      body: `Welcome to City Culture! We're thrilled to have you join our community. Explore curated events, connect with fellow members, and discover unforgettable experiences in your city.`,
-      action_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.cityculture.in'}/members/dashboard`,
-      action_text: 'Explore City Culture',
-    })
+    try {
+      await sendResendEmail({
+        to: email,
+        recipient_name: full_name || finalUsername,
+        subject: 'Welcome to City Culture! 🎉',
+        body: `Welcome to City Culture! We're thrilled to have you join our community. Explore curated events, connect with fellow members, and discover unforgettable experiences in your city.`,
+        action_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://www.cityculture.in'}/members/dashboard`,
+        action_text: 'Explore City Culture',
+      })
+    } catch (welcomeErr) {
+      console.error('Send welcome email failed silently:', welcomeErr)
+    }
 
     return NextResponse.json({ success: true, isNew: true, userId: supabaseUid })
   } catch (err: any) {

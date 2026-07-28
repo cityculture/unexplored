@@ -68,7 +68,13 @@ export async function POST(request: NextRequest) {
     }
 
     const idToken = authHeader.split('Bearer ')[1]
-    const decodedToken = await firebaseAdminAuth.verifyIdToken(idToken)
+    let decodedToken: any
+    try {
+      decodedToken = await firebaseAdminAuth.verifyIdToken(idToken)
+    } catch (tokenErr: any) {
+      console.error('Firebase verifyIdToken error in /api/events:', tokenErr)
+      return NextResponse.json({ error: `Unauthorized: ${tokenErr?.message || 'Invalid token'}` }, { status: 401 })
+    }
     const supabaseUid = uuidv5(decodedToken.uid, FIREBASE_NAMESPACE)
 
     const body = await request.json()
