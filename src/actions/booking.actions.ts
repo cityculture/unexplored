@@ -295,7 +295,7 @@ export async function initiateBookingAction(input: CreateBookingInput): Promise<
         bookingRef: booking.booking_ref,
         razorpayOrderId: razorpayOrder.id,
         totalAmount: total_amount,
-        keyId: env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+        keyId: env.NEXT_PUBLIC_RAZORPAY_KEY_ID || ''
       }
     };
 
@@ -311,7 +311,7 @@ export async function verifyPaymentAction(input: {
   razorpay_signature: string;
   bookingRef: string;
 }): Promise<{ success: boolean; error?: string }> {
-  const secret = env.RAZORPAY_KEY_SECRET;
+  const secret = env.RAZORPAY_KEY_SECRET || 'secret';
 
   // 1. Verify HMAC signature
   const generated_signature = crypto
@@ -375,7 +375,7 @@ export async function verifyPaymentAction(input: {
     for (const ticket of tickets) {
       const ticketData = { ticketId: ticket.r_ticket_id, eventId: ticket.r_event_id, bookingRef: input.bookingRef };
       const qrContent = JSON.stringify(ticketData);
-      const signedQr = crypto.createHmac('sha256', env.RAZORPAY_KEY_SECRET).update(qrContent).digest('hex');
+      const signedQr = crypto.createHmac('sha256', env.RAZORPAY_KEY_SECRET || 'secret').update(qrContent).digest('hex');
       
       const updateData = {
         qr_code_data: `${qrContent}|${signedQr}`

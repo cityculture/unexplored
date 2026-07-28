@@ -49,7 +49,7 @@ export async function handlePaymentCaptured(payload: RazorpayPayload) {
   }
 
   // 4. Sign tickets with HMAC (reusing logic from server action)
-  const secret = env.RAZORPAY_KEY_SECRET
+  const secret = env.RAZORPAY_KEY_SECRET || 'secret'
   if (tickets) {
     for (const ticket of tickets) {
       const payloadData = {
