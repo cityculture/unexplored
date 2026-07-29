@@ -121,7 +121,8 @@ export async function POST(request: NextRequest) {
         attendee_name,
         attendee_email,
         attendee_phone: attendee_phone || null,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
       } as any)
       .select('*')
       .single()
