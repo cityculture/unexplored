@@ -40,29 +40,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  async rewrites() {
-    return [
-      {
-        source: '/sitemap-events.xml',
-        destination: '/sitemap-events',
-      },
-    ];
-  },
-  async redirects() {
-    return [
-      {
-        source: '/become-host',
-        destination: '/members/become-host',
-        permanent: true,
-      },
-    ];
-  },
   serverExternalPackages: ['firebase-admin', 'jwks-rsa', 'jose', 'razorpay'],
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '5MB',
-    },
-  },
 };
 
 export default nextConfig;
