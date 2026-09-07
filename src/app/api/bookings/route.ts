@@ -51,22 +51,24 @@ export async function POST(request: NextRequest) {
             email: attendee_email,
             username,
             anonymous_alias: alias,
-            role: 'member'
+            role: 'member',
+            full_name: attendee_name || 'Guest'
           })
           .select('id')
           .single()
 
         if (createError || !newUser) {
-          return NextResponse.json({ error: 'Failed to create guest user record' }, { status: 500 })
+          console.error('Failed to create guest user record:', createError)
+          return NextResponse.json({ error: `Failed to create guest user record: ${createError?.message || ''}` }, { status: 500 })
         }
         finalUserId = newUser.id
       }
     }
 
     // Fetch Event
-    const { data: event, error: eventError } = await supabaseAdmin
+    const { data: event, error: eventError } = await (supabaseAdmin as any)
       .from('events')
-      .select('id, ticketing_mode, status')
+      .select('id, ticketing_mode, status, external_source, external_event_id')
       .eq('id', event_id)
       .single()
 
@@ -97,21 +99,22 @@ export async function POST(request: NextRequest) {
           ticket_tier_id: tier.id,
           quantity: item.quantity,
           unit_price: itemPrice,
-          total_price: itemPrice * item.quantity
+          subtotal: itemPrice * item.quantity
         })
       }
     }
 
     // Generate Booking Ref & Create Booking
     const bookingRef = 'CC-' + crypto.randomBytes(4).toString('hex').toUpperCase()
+    const isFree = totalAmount === 0
     const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')
       .insert({
         booking_ref: bookingRef,
         user_id: finalUserId,
         event_id: event_id,
-        status: totalAmount === 0 ? 'confirmed' : 'pending',
-        payment_status: totalAmount === 0 ? 'free' : 'unpaid',
+        status: isFree ? 'confirmed' : 'pending',
+        payment_status: isFree ? 'paid' : 'unpaid',
         total_amount: totalAmount,
         subtotal: totalAmount,
         taxable_amount: 0,
@@ -129,7 +132,7 @@ export async function POST(request: NextRequest) {
 
     if (bookingError || !booking) {
       console.error('Booking Creation Error:', bookingError)
-      return NextResponse.json({ error: 'Failed to create booking' }, { status: 500 })
+      return NextResponse.json({ error: `Failed to create booking: ${bookingError?.message || 'Database error'}` }, { status: 500 })
     }
 
     // Insert booking items into booking_items table
@@ -145,6 +148,14 @@ export async function POST(request: NextRequest) {
 
     // If Free/RSVP
     if (totalAmount === 0) {
+      // Sync inventory decrement to Stranger Mingle if external source is strangermingle
+      try {
+        const { syncTicketSaleToStrangerMingle } = await import('@/lib/integrations/strangermingle-sync')
+        await syncTicketSaleToStrangerMingle(booking.id)
+      } catch (smErr) {
+        console.error('[SM Sync Error on Free Booking]:', smErr)
+      }
+
       return NextResponse.json({
         success: true,
         data: {
@@ -183,5 +194,77 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     console.error('API /api/bookings Error:', err)
     return NextResponse.json({ error: err.message || 'Booking initiation failed' }, { status: 500 })
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const ref = searchParams.get('ref') || searchParams.get('bookingId') || searchParams.get('id')
+    const authHeader = request.headers.get('Authorization')
+
+    if (ref) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ref)
+      let query = supabaseAdmin
+        .from('bookings')
+        .select(`
+          *,
+          events(
+            *,
+            location:locations(*)
+          ),
+          booking_items(
+            *,
+            ticket_tiers(*)
+          ),
+          tickets(
+            *,
+            booking_items(
+              *,
+              ticket_tiers(*)
+            )
+          )
+        `)
+
+      if (isUuid) {
+        query = query.eq('id', ref)
+      } else {
+        query = query.eq('booking_ref', ref)
+      }
+
+      const { data, error } = await query.maybeSingle()
+
+      if (error) {
+        console.error('GET booking error:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+      return NextResponse.json({ booking: data })
+    }
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const idToken = authHeader.split('Bearer ')[1]
+      const decoded = await firebaseAdminAuth.verifyIdToken(idToken)
+      const supabaseUid = uuidv5(decoded.uid, FIREBASE_NAMESPACE)
+
+      const { data, error } = await supabaseAdmin
+        .from('bookings')
+        .select(`
+          *,
+          events(*),
+          booking_items(
+            *,
+            ticket_tiers(*)
+          )
+        `)
+        .eq('user_id', supabaseUid)
+        .order('created_at', { ascending: false })
+
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ bookings: data || [] })
+    }
+
+    return NextResponse.json({ error: 'Missing ref parameter or Authorization header' }, { status: 400 })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 })
   }
 }

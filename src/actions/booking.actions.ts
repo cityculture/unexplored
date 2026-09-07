@@ -311,7 +311,10 @@ export async function verifyPaymentAction(input: {
   razorpay_signature: string;
   bookingRef: string;
 }): Promise<{ success: boolean; error?: string }> {
-  const secret = env.RAZORPAY_KEY_SECRET || 'secret';
+  const secret = env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET;
+  if (!secret) {
+    return { success: false, error: 'Server payment configuration error' };
+  }
 
   // 1. Verify HMAC signature
   const generated_signature = crypto
@@ -319,7 +322,12 @@ export async function verifyPaymentAction(input: {
     .update(input.razorpay_order_id + "|" + input.razorpay_payment_id)
     .digest('hex');
 
-  if (generated_signature !== input.razorpay_signature) {
+  const isMatch = crypto.timingSafeEqual(
+    Buffer.from(generated_signature, 'utf8'),
+    Buffer.from(input.razorpay_signature, 'utf8')
+  );
+
+  if (!isMatch) {
     return { success: false, error: 'Payment verification failed: Invalid signature' };
   }
 
@@ -375,7 +383,7 @@ export async function verifyPaymentAction(input: {
     for (const ticket of tickets) {
       const ticketData = { ticketId: ticket.r_ticket_id, eventId: ticket.r_event_id, bookingRef: input.bookingRef };
       const qrContent = JSON.stringify(ticketData);
-      const signedQr = crypto.createHmac('sha256', env.RAZORPAY_KEY_SECRET || 'secret').update(qrContent).digest('hex');
+      const signedQr = crypto.createHmac('sha256', secret).update(qrContent).digest('hex');
       
       const updateData = {
         qr_code_data: `${qrContent}|${signedQr}`
@@ -448,6 +456,14 @@ export async function verifyPaymentAction(input: {
     } catch (emailErr) {
       console.error('Failed to trigger confirmation email:', emailErr);
       // Don't fail the action if email fails
+    }
+
+    // 9. Sync ticket sale to Stranger Mingle if it's an imported event
+    try {
+      const { syncTicketSaleToStrangerMingle } = await import('@/lib/integrations/strangermingle-sync')
+      await syncTicketSaleToStrangerMingle(booking.id)
+    } catch (smSyncErr) {
+      console.error('Failed to sync ticket sale to Stranger Mingle:', smSyncErr)
     }
 
     return { success: true };

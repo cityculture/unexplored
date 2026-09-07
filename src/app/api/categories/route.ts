@@ -13,7 +13,14 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ categories: data || [] })
+    return NextResponse.json(
+      { categories: data || [] },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        },
+      }
+    )
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 })
   }

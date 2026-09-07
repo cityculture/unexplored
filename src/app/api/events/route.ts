@@ -25,9 +25,13 @@ export async function GET(request: NextRequest) {
       .from('v_events_public')
       .select('*', { count: 'exact' })
 
+    const includePast = searchParams.get('includePast') === 'true' || searchParams.get('include_past') === 'true'
+    const defaultDateFrom = includePast ? undefined : new Date().toISOString()
+    const effectiveDateFrom = dateFrom || defaultDateFrom
+
     if (city) query = query.ilike('city', `%${city}%`)
     if (categorySlug) query = query.eq('category_slug', categorySlug)
-    if (dateFrom) query = query.gte('start_datetime', dateFrom)
+    if (effectiveDateFrom) query = query.gte('start_datetime', effectiveDateFrom)
     if (dateTo) query = query.lte('start_datetime', dateTo)
     if (maxPrice) query = query.lte('min_price', parseFloat(maxPrice))
     if (keyword) query = query.ilike('title', `%${keyword}%`)
@@ -47,14 +51,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({
-      items: data || [],
-      events: data || [],
-      total: count || 0,
-      page,
-      pageSize,
-      hasMore: (count || 0) > page * pageSize,
-    })
+    return NextResponse.json(
+      {
+        items: data || [],
+        events: data || [],
+        total: count || 0,
+        page,
+        pageSize,
+        hasMore: (count || 0) > page * pageSize,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      }
+    )
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 })
   }

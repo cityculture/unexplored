@@ -15,9 +15,16 @@ npm-debug.log*
 yarn-debug.log*
 
 # local env files
+.env
+.env.*
+*.env
 .env*.local
 *firebase-adminsdk*.json
 *.service-account.json
+
+# caches
+.turbo/
+.cache/
 
 # misc
 .DS_Store

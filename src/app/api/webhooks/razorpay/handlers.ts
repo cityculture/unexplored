@@ -48,9 +48,10 @@ export async function handlePaymentCaptured(payload: RazorpayPayload) {
     throw new Error('Failed to confirm booking via webhook')
   }
 
-  // 4. Sign tickets with HMAC (reusing logic from server action)
-  const secret = env.RAZORPAY_KEY_SECRET || 'secret'
-  if (tickets) {
+  const secret = env.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET
+  if (!secret) {
+    throw new Error('RAZORPAY_KEY_SECRET is not configured on server')
+  }
     for (const ticket of tickets) {
       const payloadData = {
       ticketId: ticket.r_ticket_id,
@@ -71,6 +72,13 @@ export async function handlePaymentCaptured(payload: RazorpayPayload) {
       .update({ qr_code_data: finalQrData })
       .eq('id', ticket.r_ticket_id)
     }
+
+  // Sync ticket sale to Stranger Mingle if it's an imported event
+  try {
+    const { syncTicketSaleToStrangerMingle } = await import('@/lib/integrations/strangermingle-sync')
+    await syncTicketSaleToStrangerMingle(booking.id)
+  } catch (smSyncErr) {
+    console.error('Webhook error syncing ticket sale to Stranger Mingle:', smSyncErr)
   }
 
   return { success: true, bookingId: booking.id }

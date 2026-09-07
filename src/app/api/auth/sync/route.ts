@@ -74,6 +74,7 @@ export async function POST(req: Request) {
 
     // Generate magiclink token to issue Supabase auth session cookie on frontend
     let hashed_token: string | null = null
+    let verification_type: string = 'magiclink'
     try {
       const { data: linkData, error: linkError } = await (supabaseAdmin as AppSupabaseClient).auth.admin.generateLink({
         type: 'magiclink',
@@ -81,6 +82,7 @@ export async function POST(req: Request) {
       })
       if (!linkError && linkData?.properties?.hashed_token) {
         hashed_token = linkData.properties.hashed_token
+        verification_type = linkData.properties.verification_type || 'magiclink'
       } else if (linkError) {
         console.error('generateLink error in /api/auth/sync:', linkError)
       }
@@ -110,7 +112,7 @@ export async function POST(req: Request) {
         console.error('Send login email failed silently:', emailErr)
       }
 
-      return NextResponse.json({ success: true, isNew: false, userId: existingUser.id, hashed_token })
+      return NextResponse.json({ success: true, isNew: false, userId: existingUser.id, hashed_token, verification_type })
     }
 
     // 3. New User - Create unique username and anonymous alias
@@ -174,7 +176,7 @@ export async function POST(req: Request) {
       console.error('Send welcome email failed silently:', welcomeErr)
     }
 
-    return NextResponse.json({ success: true, isNew: true, userId: supabaseUid, hashed_token })
+    return NextResponse.json({ success: true, isNew: true, userId: supabaseUid, hashed_token, verification_type })
   } catch (err: any) {
     console.error('API /api/auth/sync Error:', err)
     return NextResponse.json({ error: err?.message || 'Authentication synchronization failed' }, { status: 500 })
