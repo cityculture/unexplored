@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { firebaseAdminAuth } from '@/lib/firebase/admin'
+import { verifyFirebaseToken } from '@/lib/firebase/verify-token'
 import { createRazorpayOrder } from '@/lib/razorpay/createOrder'
+import { syncTicketSaleToStrangerMingle } from '@/lib/integrations/strangermingle-sync'
 import { v5 as uuidv5 } from 'uuid'
 import crypto from 'crypto'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 const FIREBASE_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
 
@@ -24,7 +28,7 @@ export async function POST(request: NextRequest) {
     let finalUserId: string | null = null
     if (idToken) {
       try {
-        const decoded = await firebaseAdminAuth.verifyIdToken(idToken)
+        const decoded = await verifyFirebaseToken(idToken)
         finalUserId = uuidv5(decoded.uid, FIREBASE_NAMESPACE)
       } catch (e) {
         console.warn('Invalid token provided, falling back to guest email search')
@@ -150,7 +154,6 @@ export async function POST(request: NextRequest) {
     if (totalAmount === 0) {
       // Sync inventory decrement to Stranger Mingle if external source is strangermingle
       try {
-        const { syncTicketSaleToStrangerMingle } = await import('@/lib/integrations/strangermingle-sync')
         await syncTicketSaleToStrangerMingle(booking.id)
       } catch (smErr) {
         console.error('[SM Sync Error on Free Booking]:', smErr)
@@ -163,7 +166,7 @@ export async function POST(request: NextRequest) {
           bookingRef: booking.booking_ref,
           razorpayOrderId: '',
           totalAmount: 0,
-          keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
+          keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || '',
         }
       })
     }
@@ -188,7 +191,7 @@ export async function POST(request: NextRequest) {
         bookingRef: booking.booking_ref,
         razorpayOrderId: razorpayOrder.id,
         totalAmount,
-        keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
+        keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || '',
       }
     })
   } catch (err: any) {
@@ -243,7 +246,7 @@ export async function GET(request: NextRequest) {
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const idToken = authHeader.split('Bearer ')[1]
-      const decoded = await firebaseAdminAuth.verifyIdToken(idToken)
+      const decoded = await verifyFirebaseToken(idToken)
       const supabaseUid = uuidv5(decoded.uid, FIREBASE_NAMESPACE)
 
       const { data, error } = await supabaseAdmin

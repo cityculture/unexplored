@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { syncTicketSaleToStrangerMingle } from '@/lib/integrations/strangermingle-sync'
 import { env } from '@/lib/env_server'
 import crypto from 'crypto'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function OPTIONS() {
   return NextResponse.json({}, { status: 200 })
@@ -187,7 +191,6 @@ export async function POST(request: NextRequest) {
 
     // 8. Sync ticket sale to Stranger Mingle if it is an external source event
     try {
-      const { syncTicketSaleToStrangerMingle } = await import('@/lib/integrations/strangermingle-sync')
       await syncTicketSaleToStrangerMingle(booking.id)
     } catch (smSyncErr) {
       console.error('Failed to sync ticket sale to Stranger Mingle:', smSyncErr)

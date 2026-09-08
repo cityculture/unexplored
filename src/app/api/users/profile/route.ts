@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { firebaseAdminAuth } from '@/lib/firebase/admin'
+import { verifyFirebaseToken } from '@/lib/firebase/verify-token'
 import { v5 as uuidv5 } from 'uuid'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 const FIREBASE_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
 
@@ -17,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     const idToken = authHeader.split('Bearer ')[1]
-    const decoded = await firebaseAdminAuth.verifyIdToken(idToken)
+    const decoded = await verifyFirebaseToken(idToken)
     const supabaseUid = uuidv5(decoded.uid, FIREBASE_NAMESPACE)
 
     const { data, error } = await supabaseAdmin
@@ -69,7 +72,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const idToken = authHeader.split('Bearer ')[1]
-    const decoded = await firebaseAdminAuth.verifyIdToken(idToken)
+    const decoded = await verifyFirebaseToken(idToken)
     const supabaseUid = uuidv5(decoded.uid, FIREBASE_NAMESPACE)
 
     const body = await request.json()

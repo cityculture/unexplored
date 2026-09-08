@@ -1,4 +1,4 @@
-import { razorpay } from './client';
+import { getRazorpayClient } from './client';
 
 export interface CreateSubscriptionParams {
   plan_id: string;
@@ -15,9 +15,7 @@ export async function createRazorpaySubscription({
   customer_notify = true,
   notes
 }: CreateSubscriptionParams) {
-  if (!razorpay) {
-    throw new Error('Razorpay is not initialized. Check your environment variables.');
-  }
+  const razorpay = getRazorpayClient();
 
   try {
     const subscription = await razorpay.subscriptions.create({

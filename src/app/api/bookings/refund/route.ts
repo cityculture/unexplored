@@ -6,6 +6,9 @@ import { v5 as uuidv5 } from 'uuid'
 
 const FIREBASE_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 export async function OPTIONS() {
   return NextResponse.json({}, { status: 200 })
 }

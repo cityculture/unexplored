@@ -34,22 +34,24 @@ function initFirebaseAdmin() {
     }
   }
 
-  const serviceAccountFileName = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || 'city-culture-firebase-adminsdk-fbsvc-82993a91db.json';
-  const possiblePaths = [
-    path.join(process.cwd(), serviceAccountFileName),
-    path.join(process.cwd(), '..', 'backend', serviceAccountFileName),
-  ];
+  if (process.env.NODE_ENV !== 'production') {
+    const serviceAccountFileName = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || 'city-culture-firebase-adminsdk-fbsvc-82993a91db.json';
+    const possiblePaths = [
+      path.join(process.cwd(), serviceAccountFileName),
+      path.join(process.cwd(), '..', 'backend', serviceAccountFileName),
+    ];
 
-  for (const p of possiblePaths) {
-    if (fs.existsSync(p)) {
-      try {
-        const fileContent = fs.readFileSync(p, 'utf8');
-        const serviceAccount = JSON.parse(fileContent);
-        return initializeApp({
-          credential: cert(serviceAccount),
-        });
-      } catch (e) {
-        console.error('Failed to parse service account JSON file at:', p, e);
+    for (const p of possiblePaths) {
+      if (fs.existsSync(/* turbopackIgnore: true */ p)) {
+        try {
+          const fileContent = fs.readFileSync(/* turbopackIgnore: true */ p, 'utf8');
+          const serviceAccount = JSON.parse(fileContent);
+          return initializeApp({
+            credential: cert(serviceAccount),
+          });
+        } catch (e) {
+          console.error('Failed to parse service account JSON file at:', p, e);
+        }
       }
     }
   }
