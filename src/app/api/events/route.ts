@@ -29,7 +29,14 @@ export async function GET(request: NextRequest) {
     const defaultDateFrom = includePast ? undefined : new Date().toISOString()
     const effectiveDateFrom = dateFrom || defaultDateFrom
 
-    if (city) query = query.ilike('city', `%${city}%`)
+    if (city) {
+      const c = city.trim().toLowerCase()
+      if (c === 'bangalore' || c === 'bengaluru') {
+        query = query.or('city.ilike.%bangalore%,city.ilike.%bengaluru%')
+      } else {
+        query = query.ilike('city', `%${city.trim()}%`)
+      }
+    }
     if (categorySlug) query = query.eq('category_slug', categorySlug)
     if (effectiveDateFrom) query = query.gte('start_datetime', effectiveDateFrom)
     if (dateTo) query = query.lte('start_datetime', dateTo)

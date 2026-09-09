@@ -18,7 +18,15 @@ export async function OPTIONS() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { event_id, items, attendee_name, attendee_email, attendee_phone, idToken } = body
+    const event_id = body.event_id || body.eventId
+    const attendee_name = body.attendee_name || body.name || 'Guest'
+    const attendee_email = body.attendee_email || body.email
+    const attendee_phone = body.attendee_phone || body.phone
+    const idToken = body.idToken
+    const items = body.items || (Array.isArray(body.tickets) ? body.tickets.map((t: any) => ({
+      ticket_tier_id: t.tierId || t.ticket_tier_id,
+      quantity: t.quantity,
+    })) : null)
 
     if (!event_id || !items || !attendee_email) {
       return NextResponse.json({ error: 'Missing required booking fields' }, { status: 400 })
@@ -108,90 +116,128 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate Booking Ref & Create Booking
-    const bookingRef = 'CC-' + crypto.randomBytes(4).toString('hex').toUpperCase()
+    // Generate default Booking Ref
+    const fallbackBookingRef = 'CC-' + crypto.randomBytes(4).toString('hex').toUpperCase()
     const isFree = totalAmount === 0
-    const { data: booking, error: bookingError } = await supabaseAdmin
-      .from('bookings')
-      .insert({
-        booking_ref: bookingRef,
-        user_id: finalUserId,
-        event_id: event_id,
-        status: isFree ? 'confirmed' : 'pending',
-        payment_status: isFree ? 'paid' : 'unpaid',
-        total_amount: totalAmount,
-        subtotal: totalAmount,
-        taxable_amount: 0,
-        platform_fee: 0,
-        host_payout: totalAmount,
-        currency: 'INR',
-        attendee_name,
-        attendee_email,
-        attendee_phone: attendee_phone || null,
-        created_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
-      } as any)
-      .select('*')
-      .single()
 
-    if (bookingError || !booking) {
-      console.error('Booking Creation Error:', bookingError)
-      return NextResponse.json({ error: `Failed to create booking: ${bookingError?.message || 'Database error'}` }, { status: 500 })
-    }
+    const itemsForRpc = bookingItemsToInsert.map(bi => ({
+      tierId: bi.ticket_tier_id,
+      quantity: bi.quantity,
+      unitPrice: bi.unit_price,
+      subtotal: bi.subtotal,
+    }))
 
-    // Insert booking items into booking_items table
-    if (bookingItemsToInsert.length > 0) {
-      const { error: itemsError } = await supabaseAdmin
-        .from('booking_items')
-        .insert(bookingItemsToInsert.map(bi => ({ ...bi, booking_id: booking.id })) as any)
-      
-      if (itemsError) {
-        console.error('Booking Items Insertion Error:', itemsError)
+    let bookingId: string | null = null
+    let finalBookingRef: string = fallbackBookingRef
+    let razorpayOrderId: string = ''
+
+    // If paid, create Razorpay order first so order ID can be stored with booking
+    if (!isFree) {
+      try {
+        const razorpayOrder = await createRazorpayOrder({
+          amount: Math.round(totalAmount * 100),
+          currency: 'INR',
+          receipt: fallbackBookingRef,
+        })
+        razorpayOrderId = razorpayOrder.id
+      } catch (rzpErr: any) {
+        console.error('Razorpay Order Creation Error:', rzpErr)
+        return NextResponse.json({ error: `Payment gateway error: ${rzpErr.message || 'Failed to create order'}` }, { status: 500 })
       }
     }
 
-    // If Free/RSVP
-    if (totalAmount === 0) {
-      // Sync inventory decrement to Stranger Mingle if external source is strangermingle
+    // Attempt atomic booking creation via create_pending_booking_v2 RPC
+    const { data: rpcBookingId, error: rpcError } = await (supabaseAdmin as any).rpc('create_pending_booking_v2', {
+      p_event_id: event_id,
+      p_user_id: finalUserId,
+      p_attendee_name: attendee_name || 'Guest',
+      p_attendee_email: attendee_email,
+      p_attendee_phone: attendee_phone || null,
+      p_total_amount: totalAmount,
+      p_subtotal: totalAmount,
+      p_discount_amount: 0,
+      p_razorpay_order_id: razorpayOrderId || null,
+      p_items: itemsForRpc,
+    })
+
+    if (!rpcError && rpcBookingId) {
+      bookingId = rpcBookingId
+      const { data: bRow } = await (supabaseAdmin as any)
+        .from('bookings')
+        .select('booking_ref')
+        .eq('id', bookingId)
+        .single()
+      if (bRow?.booking_ref) {
+        finalBookingRef = bRow.booking_ref
+      }
+    } else {
+      // Fallback to direct insertion if RPC fails or is missing
+      console.warn('Fallback to direct booking insertion:', rpcError?.message)
+      const { data: booking, error: bookingError } = await (supabaseAdmin as any)
+        .from('bookings')
+        .insert({
+          booking_ref: fallbackBookingRef,
+          user_id: finalUserId,
+          event_id: event_id,
+          status: isFree ? 'confirmed' : 'pending',
+          payment_status: isFree ? 'paid' : 'unpaid',
+          total_amount: totalAmount,
+          subtotal: totalAmount,
+          taxable_amount: 0,
+          platform_fee: 0,
+          host_payout: totalAmount,
+          currency: 'INR',
+          razorpay_order_id: razorpayOrderId || null,
+          attendee_name: attendee_name || 'Guest',
+          attendee_email: attendee_email,
+          attendee_phone: attendee_phone || null,
+          created_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+        })
+        .select('*')
+        .single()
+
+      if (bookingError || !booking) {
+        console.error('Booking Creation Error:', bookingError)
+        return NextResponse.json({ error: `Failed to create booking: ${bookingError?.message || 'Database error'}` }, { status: 500 })
+      }
+
+      bookingId = booking.id
+      finalBookingRef = booking.booking_ref
+
+      if (bookingItemsToInsert.length > 0) {
+        await (supabaseAdmin as any)
+          .from('booking_items')
+          .insert(bookingItemsToInsert.map(bi => ({ ...bi, booking_id: bookingId })))
+      }
+    }
+
+    // If Free Booking, sync if external source
+    if (isFree && bookingId) {
       try {
-        await syncTicketSaleToStrangerMingle(booking.id)
+        await syncTicketSaleToStrangerMingle(bookingId)
       } catch (smErr) {
         console.error('[SM Sync Error on Free Booking]:', smErr)
       }
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          bookingId: booking.id,
-          bookingRef: booking.booking_ref,
-          razorpayOrderId: '',
-          totalAmount: 0,
-          keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || '',
-        }
-      })
     }
 
-    // Create Razorpay Order (amount in paise)
-    const razorpayOrder = await createRazorpayOrder({
-      amount: Math.round(totalAmount * 100),
-      currency: 'INR',
-      receipt: booking.booking_ref,
-    })
-
-    // Update booking record with razorpay_order_id
-    await supabaseAdmin
-      .from('bookings')
-      .update({ razorpay_order_id: razorpayOrder.id } as any)
-      .eq('id', booking.id)
+    const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || ''
 
     return NextResponse.json({
       success: true,
+      bookingId,
+      bookingRef: finalBookingRef,
+      razorpayOrderId,
+      keyId,
+      amount: totalAmount * 100,
+      currency: 'INR',
+      isFree: isFree,
       data: {
-        bookingId: booking.id,
-        bookingRef: booking.booking_ref,
-        razorpayOrderId: razorpayOrder.id,
+        bookingId,
+        bookingRef: finalBookingRef,
+        razorpayOrderId,
         totalAmount,
-        keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || '',
+        keyId,
       }
     })
   } catch (err: any) {

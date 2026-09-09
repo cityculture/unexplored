@@ -37,9 +37,12 @@ export async function proxy(request: NextRequest) {
     'https://www.cityculture.in',
     'https://cityculture.in',
     'https://admin.cityculture.in',
+    'https://host.cityculture.in',
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:3002',
+    'http://localhost:3003',
+    'http://localhost:3004',
   ]
 
   if (request.method === 'OPTIONS') {

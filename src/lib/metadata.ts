@@ -18,11 +18,12 @@ export function generateEventMetadata(event: EventWithDetails): Metadata {
     category,
     'City Culture',
     'Events',
-    'Meetups',
-    'Making Friends',
-    'Stranger Meetups',
-    'Offline Events',
-    'Community'
+    'Event Listing',
+    'Book Event Tickets',
+    'Cultural Events',
+    'Workshops',
+    'Live Shows',
+    'Offline Experiences'
   ].filter(Boolean).join(', ')
 
   return {

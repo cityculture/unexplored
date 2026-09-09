@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { syncTicketSaleToStrangerMingle } from '@/lib/integrations/strangermingle-sync'
+import { sendResendEmail } from '@/lib/resend'
+import { generateTicketPdf } from '@/lib/tickets/ticket-generator'
 import { env } from '@/lib/env_server'
 import crypto from 'crypto'
 
@@ -16,7 +18,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, bookingRef } = body
 
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !bookingRef) {
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return NextResponse.json(
         { error: 'Missing required payment verification parameters' },
         { status: 400 }
@@ -45,22 +47,28 @@ export async function POST(request: NextRequest) {
     )
 
     if (!isMatch) {
-      console.warn(`Payment signature mismatch for booking ${bookingRef}`)
+      console.warn(`Payment signature mismatch for order ${razorpay_order_id}`)
       return NextResponse.json(
         { error: 'Payment verification failed: Invalid signature' },
         { status: 400 }
       )
     }
 
-    // 2. Fetch booking using supabaseAdmin
-    const { data: booking, error: fetchError } = await (supabaseAdmin as any)
+    // 2. Fetch booking using supabaseAdmin by booking_ref or razorpay_order_id
+    let bookingQuery = (supabaseAdmin as any)
       .from('bookings')
       .select('id, user_id, razorpay_order_id, booking_ref, status')
-      .eq('booking_ref', bookingRef)
-      .single()
+
+    if (bookingRef) {
+      bookingQuery = bookingQuery.eq('booking_ref', bookingRef)
+    } else {
+      bookingQuery = bookingQuery.eq('razorpay_order_id', razorpay_order_id)
+    }
+
+    const { data: booking, error: fetchError } = await bookingQuery.maybeSingle()
 
     if (fetchError || !booking) {
-      console.error('Verify Payment: Booking not found:', bookingRef, fetchError)
+      console.error('Verify Payment: Booking not found for order:', razorpay_order_id, fetchError)
       return NextResponse.json({ error: 'Booking record not found' }, { status: 404 })
     }
 
@@ -134,17 +142,22 @@ export async function POST(request: NextRequest) {
       console.error('Failed to log audit event:', auditErr)
     }
 
-    // 7. Trigger confirmation email
+    // 7. Generate PDF Ticket and Send Confirmation Email
     try {
       const { data: bookingDetails } = await (supabaseAdmin as any)
         .from('bookings')
         .select(`
+          id,
           total_amount,
           booking_ref,
           attendee_name,
           attendee_email,
           user_id,
-          events (title),
+          events (
+            title,
+            start_datetime,
+            location:locations (venue_name, city)
+          ),
           booking_items (
             quantity,
             unit_price,
@@ -155,38 +168,62 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (bookingDetails) {
-        const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL
-        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY
-        if (baseUrl && serviceKey) {
-          const functionUrl = `${baseUrl}/functions/v1/send-email`
-          const emailPayload = {
-            user_id: bookingDetails.user_id,
-            subject: `Your ticket for ${bookingDetails.events?.title || 'Event'}`,
-            body: `Thank you for your purchase! Your booking for <strong>${bookingDetails.events?.title}</strong> is confirmed.`,
-            action_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.cityculture.in'}/members/bookings/${bookingDetails.booking_ref}`,
-            meta_data: {
-              total: bookingDetails.total_amount,
-              ref: bookingDetails.booking_ref,
-              items: (bookingDetails.booking_items || []).map((item: any) => ({
-                name: item.ticket_tiers?.name || 'Ticket',
-                quantity: item.quantity,
-                price: (Number(item.unit_price) * item.quantity).toFixed(2),
-              })),
-            },
-          }
-
-          fetch(functionUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${serviceKey}`,
-            },
-            body: JSON.stringify(emailPayload),
-          }).catch((err) => console.error('Background send-email error:', err))
+        let pdfBytes: Uint8Array | null = null
+        try {
+          pdfBytes = await generateTicketPdf({
+            booking_ref: bookingDetails.booking_ref,
+            attendee_name: bookingDetails.attendee_name,
+            event_title: bookingDetails.events?.title || 'City Culture Event',
+            event_date: bookingDetails.events?.start_datetime
+              ? new Date(bookingDetails.events.start_datetime).toLocaleDateString('en-IN', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true,
+                  timeZone: 'Asia/Kolkata',
+                })
+              : 'Date TBA',
+            venue_name: bookingDetails.events?.location?.venue_name || bookingDetails.events?.location?.city || 'Selected Venue',
+            items: (bookingDetails.booking_items || []).map((item: any) => ({
+              ticket_tier_name: item.ticket_tiers?.name || 'General Admission',
+              quantity: item.quantity,
+            })),
+          })
+        } catch (pdfErr) {
+          console.error('Non-critical: PDF generation error in verify:', pdfErr)
         }
+
+        // Send Email via Resend with PDF attached
+        await sendResendEmail({
+          to: bookingDetails.attendee_email,
+          cc: 'team@cityculture.in',
+          subject: `Booking Confirmed: ${bookingDetails.events?.title || 'Your Event'}`,
+          recipient_name: bookingDetails.attendee_name,
+          body: `Your booking for <strong>${bookingDetails.events?.title}</strong> is confirmed! Please find your official admission ticket attached to this email. You can present the QR code at the venue entry.`,
+          action_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.cityculture.in'}/booking-confirmed?ref=${bookingDetails.booking_ref}`,
+          action_text: 'View Booking & Tickets',
+          attachments: pdfBytes ? [
+            {
+              filename: `ticket-${bookingDetails.booking_ref}.pdf`,
+              content: Buffer.from(pdfBytes),
+            }
+          ] : undefined,
+          meta_data: {
+            total: bookingDetails.total_amount,
+            ref: bookingDetails.booking_ref,
+            items: (bookingDetails.booking_items || []).map((item: any) => ({
+              name: item.ticket_tiers?.name || 'Ticket',
+              quantity: item.quantity,
+              price: (Number(item.unit_price) * item.quantity).toFixed(2),
+            })),
+          },
+        })
       }
     } catch (emailErr) {
-      console.error('Failed to prepare confirmation email:', emailErr)
+      console.error('Failed to send confirmation email in verify:', emailErr)
     }
 
     // 8. Sync ticket sale to Stranger Mingle if it is an external source event

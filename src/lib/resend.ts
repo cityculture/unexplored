@@ -1,10 +1,12 @@
 export interface SendEmailOptions {
   to: string | string[];
+  cc?: string | string[];
   subject: string;
   body: string;
   action_url?: string;
   action_text?: string;
   recipient_name?: string;
+  attachments?: Array<{ filename: string; content: string | Buffer }>;
   meta_data?: {
     items?: Array<{ name: string; quantity: number; price: number | string }>;
     total?: number | string;
@@ -70,18 +72,31 @@ export async function sendResendEmail(options: SendEmailOptions): Promise<{ succ
   `;
 
   try {
+    const payload: any = {
+      from: fromEmail,
+      to: recipients,
+      subject: options.subject,
+      html: html,
+    };
+
+    if (options.cc) {
+      payload.cc = Array.isArray(options.cc) ? options.cc : [options.cc];
+    }
+
+    if (options.attachments && options.attachments.length > 0) {
+      payload.attachments = options.attachments.map((att) => ({
+        filename: att.filename,
+        content: Buffer.isBuffer(att.content) ? att.content.toString('base64') : att.content,
+      }));
+    }
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: recipients,
-        subject: options.subject,
-        html: html,
-      }),
+      body: JSON.stringify(payload),
     });
 
     const data = await res.json();
