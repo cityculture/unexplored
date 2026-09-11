@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { verifyFirebaseToken } from '@/lib/firebase/verify-token'
 import { createRazorpayOrder } from '@/lib/razorpay/createOrder'
-import { syncTicketSaleToStrangerMingle } from '@/lib/integrations/strangermingle-sync'
+import { syncTicketSaleToExternalSource } from '@/lib/integrations/partner-inventory-sync'
 import { v5 as uuidv5 } from 'uuid'
 import crypto from 'crypto'
 
@@ -215,9 +215,9 @@ export async function POST(request: NextRequest) {
     // If Free Booking, sync if external source
     if (isFree && bookingId) {
       try {
-        await syncTicketSaleToStrangerMingle(bookingId)
-      } catch (smErr) {
-        console.error('[SM Sync Error on Free Booking]:', smErr)
+        await syncTicketSaleToExternalSource(bookingId)
+      } catch (syncErr) {
+        console.error('[External Sync Error on Free Booking]:', syncErr)
       }
     }
 
@@ -287,13 +287,34 @@ export async function GET(request: NextRequest) {
         console.error('GET booking error:', error)
         return NextResponse.json({ error: error.message }, { status: 500 })
       }
+
+      if (data) {
+        delete (data as any).razorpay_signature
+      }
+
       return NextResponse.json({ booking: data })
     }
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      const idToken = authHeader.split('Bearer ')[1]
-      const decoded = await verifyFirebaseToken(idToken)
-      const supabaseUid = uuidv5(decoded.uid, FIREBASE_NAMESPACE)
+      const token = authHeader.split('Bearer ')[1]
+      let supabaseUid: string | null = null
+      try {
+        const decoded = await verifyFirebaseToken(token)
+        supabaseUid = uuidv5(decoded.uid, FIREBASE_NAMESPACE)
+      } catch {
+        try {
+          const { data: sbUser } = await supabaseAdmin.auth.getUser(token)
+          if (sbUser?.user) {
+            supabaseUid = sbUser.user.id
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!supabaseUid) {
+        return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 })
+      }
 
       const { data, error } = await supabaseAdmin
         .from('bookings')

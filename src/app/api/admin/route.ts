@@ -5,7 +5,8 @@ export async function POST(request: NextRequest) {
   try {
     // 1. Security Check: Validate Secret Header
     const secretHeader = request.headers.get('x-internal-api-secret');
-    if (secretHeader !== process.env.INTERNAL_API_SECRET) {
+    const expectedSecret = process.env.INTERNAL_API_SECRET;
+    if (!expectedSecret || secretHeader !== expectedSecret) {
       console.warn('[Admin DB Proxy] Unauthorized Attempt');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

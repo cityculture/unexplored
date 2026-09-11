@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { syncTicketSaleToStrangerMingle } from '@/lib/integrations/strangermingle-sync'
+import { syncTicketSaleToExternalSource } from '@/lib/integrations/partner-inventory-sync'
 import { sendResendEmail } from '@/lib/resend'
 import { generateTicketPdf } from '@/lib/tickets/ticket-generator'
 import { env } from '@/lib/env_server'
@@ -226,11 +226,11 @@ export async function POST(request: NextRequest) {
       console.error('Failed to send confirmation email in verify:', emailErr)
     }
 
-    // 8. Sync ticket sale to Stranger Mingle if it is an external source event
+    // 8. Sync ticket sale to external partner source if applicable
     try {
-      await syncTicketSaleToStrangerMingle(booking.id)
-    } catch (smSyncErr) {
-      console.error('Failed to sync ticket sale to Stranger Mingle:', smSyncErr)
+      await syncTicketSaleToExternalSource(booking.id)
+    } catch (syncErr) {
+      console.error('Failed to sync ticket sale to external partner source:', syncErr)
     }
 
     return NextResponse.json({

@@ -15,8 +15,9 @@ export async function proxy(request: NextRequest) {
   if (!isLocalhost) {
     const host = hostname.split(':')[0]
     const ALLOWED_HOST = 'api.cityculture.in'
+    const isAllowedHost = host === ALLOWED_HOST || host.endsWith('.vercel.app')
 
-    if (host !== ALLOWED_HOST) {
+    if (!isAllowedHost) {
       return new NextResponse(
         JSON.stringify({ error: 'Access Denied', message: 'This API is only accessible from api.cityculture.in' }),
         { status: 403, headers: { 'Content-Type': 'application/json' } }

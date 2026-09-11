@@ -9,7 +9,8 @@ import { sendNotification } from '../../../../lib/notifications/send';
 export async function GET(request: Request) {
   // 1. Verify Vercel Cron Secret
   const authHeader = request.headers.get('Authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

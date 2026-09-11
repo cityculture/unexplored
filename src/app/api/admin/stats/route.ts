@@ -5,7 +5,8 @@ export async function GET(request: NextRequest) {
   try {
     // 1. Security Check: Validate Secret Header
     const secretHeader = request.headers.get('x-internal-api-secret');
-    if (secretHeader !== process.env.INTERNAL_API_SECRET) {
+    const expectedSecret = process.env.INTERNAL_API_SECRET;
+    if (!expectedSecret || secretHeader !== expectedSecret) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

@@ -26,15 +26,26 @@ export async function POST(request: NextRequest) {
       try {
         const decodedToken = await verifyFirebaseToken(token)
         userId = uuidv5(decodedToken.uid, FIREBASE_NAMESPACE)
-      } catch (tokenErr) {
-        // Fallback: Check if token is service role or valid UUID
-        if (token === process.env.SUPABASE_SERVICE_ROLE_KEY && bodyUserId) {
-          userId = bodyUserId
+      } catch {
+        // Check if token is a valid Supabase access token
+        try {
+          const { data: sbUser } = await supabaseAdmin.auth.getUser(token)
+          if (sbUser?.user) {
+            userId = sbUser.user.id
+          }
+        } catch {
+          // Ignore
+        }
+
+        // Check if caller is trusted internal backend/admin with verified secret
+        if (!userId) {
+          const isServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY && token === process.env.SUPABASE_SERVICE_ROLE_KEY
+          const isInternalSecret = process.env.INTERNAL_API_SECRET && token === process.env.INTERNAL_API_SECRET
+          if ((isServiceKey || isInternalSecret) && bodyUserId) {
+            userId = bodyUserId
+          }
         }
       }
-    } else if (bodyUserId) {
-      // In server action proxy, pass userId if verified by Supabase session
-      userId = bodyUserId
     }
 
     if (!userId) {

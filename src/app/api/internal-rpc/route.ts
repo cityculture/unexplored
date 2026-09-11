@@ -15,13 +15,12 @@ import { SM_UUID_NAMESPACE } from '@/lib';
  * 3. Identity Bridging: Firebase UID -> Deterministic Supabase UUID
  */
 
-const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
-
 export async function POST(req: Request) {
   try {
     // 1. Security Check: Validate Secret Header
     const secretHeader = req.headers.get('x-internal-api-secret');
-    if (secretHeader !== INTERNAL_API_SECRET) {
+    const internalSecret = process.env.INTERNAL_API_SECRET;
+    if (!internalSecret || secretHeader !== internalSecret) {
       console.warn('[RPC] Unauthorized Access Attempt: Invalid Secret');
       return NextResponse.json({ error: 'Unauthorized Internal Request' }, { status: 401 });
     }
