@@ -51,6 +51,7 @@ export interface NormalizedEvent {
   timezone: string
   doors_open_at: string | null
   max_capacity: number
+  booking_count: number
   is_age_restricted: boolean
   min_age: number
   refund_policy: string
@@ -236,7 +237,21 @@ export function normalizePartnerEvent(partner: PartnerConfig, raw: any): Normali
     }
   })
 
-  // 8. Description enrichment with instructor details if available
+  // 8. Default high-resolution fallback cover images if missing
+  const defaultCoverUrl = isSalty
+    ? 'https://res.cloudinary.com/difmfdika/image/upload/v1788743036/salty-media/assets/course/course-hero-banner.jpg'
+    : 'https://res.cloudinary.com/city-culture/image/upload/v1773672200/event-posters/pending/mkylzfqmrzebzbupmoxr.jpg'
+
+  const coverImageUrl = raw.cover_image_url || raw.vertical_poster_url || defaultCoverUrl
+  const verticalPosterUrl = raw.vertical_poster_url || raw.cover_image_url || defaultCoverUrl
+
+  // 9. Capacity & Booking Count Calculation
+  const tierCapacity = tiers.reduce((s, t) => s + (t.total_quantity || 0), 0)
+  const tierSold = tiers.reduce((s, t) => s + (t.sold_count || 0), 0)
+  const maxCapacity = Number(raw.max_capacity || raw.total_capacity || tierCapacity || 30)
+  const bookingCount = Math.max(Number(raw.booking_count || 0), tierSold)
+
+  // 10. Description enrichment with instructor details if available
   let fullDesc = raw.description || raw.short_description || title
   if (raw.instructor_name && !fullDesc.includes(raw.instructor_name)) {
     fullDesc = `**Instructor: ${raw.instructor_name}**${raw.instructor_bio ? ` (${raw.instructor_bio})` : ''}\n\n` + fullDesc
@@ -253,8 +268,8 @@ export function normalizePartnerEvent(partner: PartnerConfig, raw: any): Normali
     location,
     short_description: raw.short_description || raw.title || '',
     description: fullDesc,
-    cover_image_url: raw.cover_image_url || null,
-    vertical_poster_url: raw.vertical_poster_url || raw.cover_image_url || null,
+    cover_image_url: coverImageUrl,
+    vertical_poster_url: verticalPosterUrl,
     event_type: eventType,
     ticketing_mode: 'platform',
     status: raw.status === 'upcoming' ? 'published' : (raw.status || 'published'),
@@ -262,7 +277,8 @@ export function normalizePartnerEvent(partner: PartnerConfig, raw: any): Normali
     end_datetime: endDatetime,
     timezone: raw.timezone || 'Asia/Kolkata',
     doors_open_at: doorsOpenTime,
-    max_capacity: Number(raw.max_capacity || raw.total_capacity || 50),
+    max_capacity: maxCapacity,
+    booking_count: bookingCount,
     is_age_restricted: Boolean(raw.is_age_restricted),
     min_age: Number(raw.min_age || 0),
     refund_policy: raw.refund_policy || 'no_refund',

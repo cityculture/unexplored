@@ -136,6 +136,7 @@ export async function POST(request: NextRequest) {
       timezone: normalized.timezone,
       doors_open_at: normalized.doors_open_at,
       max_capacity: normalized.max_capacity,
+      booking_count: normalized.booking_count,
       is_age_restricted: normalized.is_age_restricted,
       min_age: normalized.min_age,
       refund_policy: normalized.refund_policy,
