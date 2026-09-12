@@ -153,7 +153,6 @@ export async function POST(req: Request) {
       username: finalUsername,
       full_name: full_name || baseUsername,
       avatar_url: avatar_url || null,
-      anonymous_alias,
       role: 'member',
     })
 

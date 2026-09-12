@@ -61,8 +61,7 @@ export async function POST(request: NextRequest) {
           .from('users')
           .insert({
             email: attendee_email,
-            username,
-            anonymous_alias: alias,
+            username: alias,
             role: 'member',
             full_name: attendee_name || 'Guest'
           })

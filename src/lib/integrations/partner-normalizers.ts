@@ -283,7 +283,7 @@ export function normalizePartnerEvent(partner: PartnerConfig, raw: any): Normali
     min_age: Number(raw.min_age || 0),
     refund_policy: raw.refund_policy || 'no_refund',
     refund_policy_text: raw.refund_policy_text || null,
-    is_featured: Boolean(raw.is_featured),
+    is_featured: raw.is_featured !== undefined ? Boolean(raw.is_featured) : true,
     is_sponsored: Boolean(raw.is_sponsored),
     tiers,
   }

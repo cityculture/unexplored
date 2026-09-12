@@ -20,8 +20,8 @@ export async function getConversations(userId: string) {
         .from('conversations')
         .select(`
             *,
-            p1:participant_1_id(id, anonymous_alias, avatar_url),
-            p2:participant_2_id(id, anonymous_alias, avatar_url)
+            p1:participant_1_id(id, avatar_url),
+            p2:participant_2_id(id, avatar_url)
         `)
         .or(`participant_1_id.eq.${userId},participant_2_id.eq.${userId}`)
         .order('last_message_at', { ascending: false });
@@ -41,8 +41,7 @@ export async function getConversations(userId: string) {
             last_message_at: conv.last_message_at,
             last_message_preview: conv.last_message_preview,
             other_participant: {
-                id: otherParticipant?.id || '',
-                anonymous_alias: otherParticipant?.anonymous_alias || 'Unknown User',
+                id: otherParticipant?.id || '': otherParticipant?.username || 'Unknown User',
                 avatar_url: otherParticipant?.avatar_url
             },
             is_muted: isP1 ? conv.is_muted_by_p1 : conv.is_muted_by_p2,
@@ -212,7 +211,7 @@ export async function getAvailableMembers(userId: string, limit = 50) {
 
     const { data, error } = await supabase
         .from('users')
-        .select('id, anonymous_alias, avatar_url')
+        .select('id, avatar_url')
         .neq('id', userId)
         .eq('is_active', true)
         .not('anonymous_alias', 'is', null)

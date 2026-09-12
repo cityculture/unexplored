@@ -159,7 +159,7 @@ export async function getGroups(userId: string | null) {
             .from('groups')
             .select(`
                 *,
-                owner:users!owner_id (username, anonymous_alias, avatar_url),
+                owner:users!owner_id (username, avatar_url),
                 members_count:group_members(count),
                 location:locations (*),
                 category:categories (*)
@@ -203,7 +203,7 @@ export async function getGroup(userId: string | null, groupId: string) {
             .from('groups')
             .select(`
                 *,
-                owner:users!owner_id (username, anonymous_alias, avatar_url),
+                owner:users!owner_id (username, avatar_url),
                 members_count:group_members(count),
                 location:locations (*),
                 category:categories (*)
@@ -251,7 +251,7 @@ export async function getUserGroups(userId: string) {
                 role,
                 group:groups (
                     *,
-                    owner:users!owner_id (username, anonymous_alias, avatar_url),
+                    owner:users!owner_id (username, avatar_url),
                     members_count:group_members(count),
                     location:locations (*),
                     category:categories (*)

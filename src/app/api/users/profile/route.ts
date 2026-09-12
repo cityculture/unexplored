@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       .from('users')
       .select(
         `
-        id, username, full_name, anonymous_alias, email, phone, phone_verified,
+        id, username, full_name, email, phone, phone_verified,
         avatar_url, bio, gender, date_of_birth, role,
         is_verified, is_active, created_at, updated_at,
         subscriptions:subscriptions(*),

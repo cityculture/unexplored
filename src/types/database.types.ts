@@ -2681,7 +2681,7 @@ export type Database = {
       }
       users: {
         Row: {
-          anonymous_alias: string
+
           avatar_url: string | null
           bio: string | null
           created_at: string | null
@@ -2711,7 +2711,7 @@ export type Database = {
           full_name: string | null
         }
         Insert: {
-          anonymous_alias: string
+
           avatar_url?: string | null
           bio?: string | null
           created_at?: string | null
@@ -2741,7 +2741,7 @@ export type Database = {
           full_name?: string | null
         }
         Update: {
-          anonymous_alias?: string
+
           avatar_url?: string | null
           bio?: string | null
           created_at?: string | null

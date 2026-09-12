@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('dateTo') || searchParams.get('date_to')
     const maxPrice = searchParams.get('maxPrice') || searchParams.get('max_price')
     const keyword = searchParams.get('keyword') || searchParams.get('q')
+    const isFeatured = searchParams.get('isFeatured') || searchParams.get('is_featured')
     const page = parseInt(searchParams.get('page') || '1', 10)
     const pageSize = parseInt(searchParams.get('pageSize') || searchParams.get('limit') || '12', 10)
 
@@ -29,6 +30,9 @@ export async function GET(request: NextRequest) {
     const defaultDateFrom = includePast ? undefined : new Date().toISOString()
     const effectiveDateFrom = dateFrom || defaultDateFrom
 
+    if (isFeatured === 'true') {
+      query = query.eq('is_featured', true)
+    }
     if (city) {
       const c = city.trim().toLowerCase()
       if (c === 'bangalore' || c === 'bengaluru') {

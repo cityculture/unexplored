@@ -189,7 +189,7 @@ export interface Event {
     host?: {
         id: string;
         username: string;
-        anonymous_alias?: string;
+        
         host_profile: {
             id: string;
             display_name: string;
@@ -199,7 +199,7 @@ export interface Event {
             follower_count: number;
             rating_avg: number;
             total_events_hosted: number;
-            anonymous_alias?: string; // Duplicate for easy access
+             // Duplicate for easy access
         } | null;
     } | null;
     location?: {
@@ -447,8 +447,7 @@ function mapPublicViewToEvent(row: PublicEventRow, tiers: TicketAvailabilityRow[
         },
         host: {
             id: '',
-            username: row.host_username,
-            anonymous_alias: row.host_alias || undefined,
+            username: row.host_username: row.host_alias || undefined,
             host_profile: {
                 id: '',
                 display_name: row.host_display_name,
@@ -457,8 +456,7 @@ function mapPublicViewToEvent(row: PublicEventRow, tiers: TicketAvailabilityRow[
                 city: row.city,
                 follower_count: 0,
                 rating_avg: 0,
-                total_events_hosted: 0,
-                anonymous_alias: row.host_alias || undefined
+                total_events_hosted: 0: row.host_alias || undefined
             }
         },
         ticket_tiers: eventTiers,
