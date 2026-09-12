@@ -29,3 +29,5 @@ yarn-debug.log*
 # misc
 .DS_Store
 *.tsbuildinfo
+supabase/.temp/
+.temp/

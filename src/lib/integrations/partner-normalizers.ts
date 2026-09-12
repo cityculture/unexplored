@@ -36,7 +36,6 @@ export interface NormalizedEvent {
   title: string
   slug: string
   host_id: string
-  host_page_id: string
   category_slug: string
   location: NormalizedLocation | null
   short_description: string
@@ -263,7 +262,6 @@ export function normalizePartnerEvent(partner: PartnerConfig, raw: any): Normali
     title: title,
     slug: cleanSlug,
     host_id: partner.hostUserId,
-    host_page_id: partner.hostPageId,
     category_slug: categorySlug,
     location,
     short_description: raw.short_description || raw.title || '',

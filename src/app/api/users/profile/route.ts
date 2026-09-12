@@ -30,12 +30,11 @@ export async function GET(request: NextRequest) {
         id, username, full_name, email, phone, phone_verified,
         avatar_url, bio, gender, date_of_birth, role,
         is_verified, is_active, created_at, updated_at,
-        subscriptions:subscriptions(*),
-        host_profile:host_pages!host_profiles_user_id_fkey (
-          id, user_id, host_type, display_name, organisation_name, tagline,
-          description, website_url, instagram_handle, logo_url, banner_url,
-          city, state, country, is_approved, follower_count, rating_avg, rating_count
-        )
+        host_type, organisation_name, kyc_status,
+        bank_account_verified, bank_account_name, bank_account_number, bank_ifsc,
+        website_url, facebook_url, instagram_handle, twitter_handle, youtube_url,
+        follower_count, total_events_hosted, is_approved,
+        subscriptions:subscriptions(*)
       `
       )
       .eq('id', supabaseUid)
@@ -50,12 +49,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
     }
 
-    const profile = Array.isArray(data.host_profile) ? data.host_profile[0] : data.host_profile
-
     return NextResponse.json({
       user: {
         ...data,
-        host_profile: profile || null,
         subscriptions: data.subscriptions || [],
       },
     })

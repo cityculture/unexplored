@@ -77,7 +77,6 @@ async function upsertNormalizedEvent(normalized: ReturnType<typeof normalizePart
     title: normalized.title,
     slug: finalSlug,
     host_id: normalized.host_id,
-    host_page_id: normalized.host_page_id,
     category_id: categoryId,
     location_id: locationId,
     short_description: normalized.short_description,

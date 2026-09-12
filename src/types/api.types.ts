@@ -3,7 +3,6 @@ import {
   BookingItem,
   Category,
   Event,
-  HostProfile,
   Location,
   TicketTier,
   User,
@@ -52,7 +51,7 @@ export type EventWithDetails = Event & {
   // Joined relations
   category?: Category | null
   location?: Location | null
-  host?: (User & { profile: HostProfile | null }) | null
+  host?: User | null
   ticket_tiers?: TicketTier[]
   tags?: { tag: { id: string, name: string, slug: string } }[]
   cohosts?: { role: string, user: { id: string, full_name: string | null, username: string, avatar_url: string | null } }[]
@@ -63,9 +62,7 @@ export type BookingWithItems = Booking & {
   ticket_tiers: TicketTier[]
 }
 
-export type HostWithDetails = HostProfile & {
-  user: User | null
-  follower_count: number
+export type HostWithDetails = User & {
   event_count: number
   is_following?: boolean
   events?: EventWithDetails[]

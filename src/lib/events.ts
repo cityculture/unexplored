@@ -447,7 +447,7 @@ function mapPublicViewToEvent(row: PublicEventRow, tiers: TicketAvailabilityRow[
         },
         host: {
             id: '',
-            username: row.host_username: row.host_alias || undefined,
+            username: row.host_username,
             host_profile: {
                 id: '',
                 display_name: row.host_display_name,
@@ -456,7 +456,7 @@ function mapPublicViewToEvent(row: PublicEventRow, tiers: TicketAvailabilityRow[
                 city: row.city,
                 follower_count: 0,
                 rating_avg: 0,
-                total_events_hosted: 0: row.host_alias || undefined
+                total_events_hosted: 0
             }
         },
         ticket_tiers: eventTiers,

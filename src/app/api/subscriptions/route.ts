@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         total_count: planId === 'monthly' ? 120 : 10,
         customer_notify: true,
         notes: {
-          host_page_id: pageId || '',
+          host_id: pageId || '',
           user_id: userId,
           plan_type: planId,
         },
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
         .from('subscriptions')
         .insert({
           user_id: userId,
-          host_page_id: pageId,
+          host_id: pageId,
           plan_type: planType,
           amount: amount,
           currency: 'INR',

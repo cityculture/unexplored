@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -458,82 +458,97 @@ export type Database = {
           },
         ]
       }
-      conversations: {
+      curation_reports: {
         Row: {
-          context_event_id: string | null
-          created_at: string | null
+          created_at: string
+          evidence_url: string | null
+          event_id: string
           id: string
-          is_blocked_by_p1: boolean | null
-          is_blocked_by_p2: boolean | null
-          is_muted_by_p1: boolean | null
-          is_muted_by_p2: boolean | null
-          last_message_at: string | null
-          last_message_preview: string | null
-          p1_deleted_at: string | null
-          p2_deleted_at: string | null
-          participant_1_id: string
-          participant_2_id: string
+          message: string
+          organization_name: string | null
+          report_type: string
+          reporter_email: string
+          reporter_name: string
+          reporter_phone: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
         }
         Insert: {
-          context_event_id?: string | null
-          created_at?: string | null
+          created_at?: string
+          evidence_url?: string | null
+          event_id: string
           id?: string
-          is_blocked_by_p1?: boolean | null
-          is_blocked_by_p2?: boolean | null
-          is_muted_by_p1?: boolean | null
-          is_muted_by_p2?: boolean | null
-          last_message_at?: string | null
-          last_message_preview?: string | null
-          p1_deleted_at?: string | null
-          p2_deleted_at?: string | null
-          participant_1_id: string
-          participant_2_id: string
+          message: string
+          organization_name?: string | null
+          report_type: string
+          reporter_email: string
+          reporter_name: string
+          reporter_phone?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
         }
         Update: {
-          context_event_id?: string | null
-          created_at?: string | null
+          created_at?: string
+          evidence_url?: string | null
+          event_id?: string
           id?: string
-          is_blocked_by_p1?: boolean | null
-          is_blocked_by_p2?: boolean | null
-          is_muted_by_p1?: boolean | null
-          is_muted_by_p2?: boolean | null
-          last_message_at?: string | null
-          last_message_preview?: string | null
-          p1_deleted_at?: string | null
-          p2_deleted_at?: string | null
-          participant_1_id?: string
-          participant_2_id?: string
+          message?: string
+          organization_name?: string | null
+          report_type?: string
+          reporter_email?: string
+          reporter_name?: string
+          reporter_phone?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
         }
         Relationships: [
           {
-            foreignKeyName: "conversations_context_event_id_fkey"
-            columns: ["context_event_id"]
+            foreignKeyName: "curation_reports_event_id_fkey"
+            columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "conversations_context_event_id_fkey"
-            columns: ["context_event_id"]
-            isOneToOne: false
-            referencedRelation: "v_events_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversations_participant_1_id_fkey"
-            columns: ["participant_1_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversations_participant_2_id_fkey"
-            columns: ["participant_2_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
         ]
+      }
+      contact_submissions: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          message: string | null
+          name: string
+          phone: string | null
+          source: string | null
+          status: string
+          submission_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          message?: string | null
+          name: string
+          phone?: string | null
+          source?: string | null
+          status?: string
+          submission_type?: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string | null
+          name?: string
+          phone?: string | null
+          source?: string | null
+          status?: string
+          submission_type?: string
+        }
+        Relationships: []
       }
       discussion_likes: {
         Row: {
@@ -567,6 +582,45 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_age_restrictions: {
+        Row: {
+          created_at: string | null
+          event_id: string
+          id: string
+          min_age: number | null
+          restriction_text: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_id: string
+          id?: string
+          min_age?: number | null
+          restriction_text: string
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string
+          id?: string
+          min_age?: number | null
+          restriction_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_age_restrictions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_age_restrictions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_events_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1202,12 +1256,17 @@ export type Database = {
           cancelled_at: string | null
           cancelled_by: string | null
           category_id: string
+          cover_image_alt: string | null
           cover_image_url: string | null
           created_at: string | null
+          creation_fee_paid: boolean | null
+          creation_fee_payment_id: string | null
           description: string | null
           doors_open_at: string | null
           end_datetime: string
           event_type: string | null
+          external_event_id: string | null
+          external_source: string | null
           external_ticket_url: string | null
           fts: unknown
           host_id: string
@@ -1245,9 +1304,14 @@ export type Database = {
           timezone: string
           title: string
           updated_at: string | null
+          vertical_poster_alt: string | null
           vertical_poster_url: string | null
           views_count: number | null
-          host_page_id: string | null
+          is_curated?: boolean | null
+          source_platform?: string | null
+          source_event_url?: string | null
+          claim_status?: string | null
+          claimed_by_user_id?: string | null
         }
         Insert: {
           admin_notes?: string | null
@@ -1256,12 +1320,17 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           category_id: string
+          cover_image_alt?: string | null
           cover_image_url?: string | null
           created_at?: string | null
+          creation_fee_paid?: boolean | null
+          creation_fee_payment_id?: string | null
           description?: string | null
           doors_open_at?: string | null
           end_datetime: string
           event_type?: string | null
+          external_event_id?: string | null
+          external_source?: string | null
           external_ticket_url?: string | null
           fts?: unknown
           host_id: string
@@ -1299,8 +1368,14 @@ export type Database = {
           timezone?: string
           title: string
           updated_at?: string | null
+          vertical_poster_alt?: string | null
           vertical_poster_url?: string | null
           views_count?: number | null
+          is_curated?: boolean | null
+          source_platform?: string | null
+          source_event_url?: string | null
+          claim_status?: string | null
+          claimed_by_user_id?: string | null
         }
         Update: {
           admin_notes?: string | null
@@ -1309,12 +1384,17 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           category_id?: string
+          cover_image_alt?: string | null
           cover_image_url?: string | null
           created_at?: string | null
+          creation_fee_paid?: boolean | null
+          creation_fee_payment_id?: string | null
           description?: string | null
           doors_open_at?: string | null
           end_datetime?: string
           event_type?: string | null
+          external_event_id?: string | null
+          external_source?: string | null
           external_ticket_url?: string | null
           fts?: unknown
           host_id?: string
@@ -1352,8 +1432,14 @@ export type Database = {
           timezone?: string
           title?: string
           updated_at?: string | null
+          vertical_poster_alt?: string | null
           vertical_poster_url?: string | null
           views_count?: number | null
+          is_curated?: boolean | null
+          source_platform?: string | null
+          source_event_url?: string | null
+          claim_status?: string | null
+          claimed_by_user_id?: string | null
         }
         Relationships: [
           {
@@ -1361,13 +1447,6 @@ export type Database = {
             columns: ["cancelled_by"]
             isOneToOne: false
             referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "events_host_page_id_fkey"
-            columns: ["host_page_id"]
-            isOneToOne: false
-            referencedRelation: "host_pages"
             referencedColumns: ["id"]
           },
           {
@@ -1478,160 +1557,243 @@ export type Database = {
           },
         ]
       }
-      host_follows: {
+      group_members: {
         Row: {
           created_at: string | null
-          follower_id: string
-          host_id: string
+          group_id: string
           id: string
+          role: string
+          user_id: string
         }
         Insert: {
           created_at?: string | null
-          follower_id: string
-          host_id: string
+          group_id: string
           id?: string
+          role?: string
+          user_id: string
         }
         Update: {
           created_at?: string | null
-          follower_id?: string
-          host_id?: string
+          group_id?: string
           id?: string
+          role?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "host_follows_follower_id_fkey"
-            columns: ["follower_id"]
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "groups"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "host_follows_host_page_id_fkey"
-            columns: ["host_page_id"]
+            foreignKeyName: "group_members_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "host_pages"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
       }
-      host_pages: {
+      groups: {
         Row: {
-          approved_at: string | null
-          approved_by: string | null
-          bank_account_verified: boolean | null
-          banner_url: string | null
-          city: string | null
-          country: string | null
+          category_id: string | null
           created_at: string | null
           description: string | null
-          display_name: string
-          facebook_url: string | null
-          follower_count: number | null
-          host_type: string
           id: string
-          instagram_handle: string | null
-          is_approved: boolean | null
-          kyc_documents: Json | null
-          kyc_status: string | null
-          logo_url: string | null
-          organisation_name: string | null
-          rating_avg: number | null
-          rating_count: number | null
-          razorpay_account_id: string | null
-          razorpay_contact_id: string | null
-          state: string | null
-          tagline: string | null
-          total_events_hosted: number | null
-          total_revenue: number | null
-          total_tickets_sold: number | null
-          twitter_handle: string | null
+          image_url: string | null
+          location_id: string | null
+          name: string
+          owner_id: string | null
           updated_at: string | null
-          user_id: string
-          website_url: string | null
-          youtube_url: string | null
-          slug: string | null
         }
         Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          bank_account_verified?: boolean | null
-          banner_url?: string | null
-          city?: string | null
-          country?: string | null
+          category_id?: string | null
           created_at?: string | null
           description?: string | null
-          display_name: string
-          facebook_url?: string | null
-          follower_count?: number | null
-          host_type: string
           id?: string
-          instagram_handle?: string | null
-          is_approved?: boolean | null
-          kyc_documents?: Json | null
-          kyc_status?: string | null
-          logo_url?: string | null
-          organisation_name?: string | null
-          rating_avg?: number | null
-          rating_count?: number | null
-          razorpay_account_id?: string | null
-          razorpay_contact_id?: string | null
-          state?: string | null
-          tagline?: string | null
-          total_events_hosted?: number | null
-          total_revenue?: number | null
-          total_tickets_sold?: number | null
-          twitter_handle?: string | null
+          image_url?: string | null
+          location_id?: string | null
+          name: string
+          owner_id?: string | null
           updated_at?: string | null
-          user_id: string
-          website_url?: string | null
-          youtube_url?: string | null
-          slug?: string | null
         }
         Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          bank_account_verified?: boolean | null
-          banner_url?: string | null
-          city?: string | null
-          country?: string | null
+          category_id?: string | null
           created_at?: string | null
           description?: string | null
-          display_name?: string
-          facebook_url?: string | null
-          follower_count?: number | null
-          host_type?: string
           id?: string
-          instagram_handle?: string | null
-          is_approved?: boolean | null
-          kyc_documents?: Json | null
-          kyc_status?: string | null
-          logo_url?: string | null
-          organisation_name?: string | null
-          rating_avg?: number | null
-          rating_count?: number | null
-          razorpay_account_id?: string | null
-          razorpay_contact_id?: string | null
-          state?: string | null
-          tagline?: string | null
-          total_events_hosted?: number | null
-          total_revenue?: number | null
-          total_tickets_sold?: number | null
-          twitter_handle?: string | null
+          image_url?: string | null
+          location_id?: string | null
+          name?: string
+          owner_id?: string | null
           updated_at?: string | null
-          user_id?: string
-          website_url?: string | null
-          youtube_url?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "host_profiles_approved_by_fkey"
-            columns: ["approved_by"]
+            foreignKeyName: "groups_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groups_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groups_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      host_applications: {
+        Row: {
+          age: number
+          agree_to_safety: boolean
+          agree_to_terms: boolean
+          agree_to_zero_harassment: boolean
+          availability: string[]
+          city: string
+          created_at: string | null
+          email: string
+          event_formats: string[]
+          events_attended: string
+          full_name: string
+          has_prior_experience: string
+          id: string
+          member_since: string
+          occupation: string | null
+          phone: string
+          prior_experience_detail: string | null
+          safety_understanding: string
+          why_host: string
+        }
+        Insert: {
+          age: number
+          agree_to_safety?: boolean
+          agree_to_terms?: boolean
+          agree_to_zero_harassment?: boolean
+          availability?: string[]
+          city: string
+          created_at?: string | null
+          email: string
+          event_formats?: string[]
+          events_attended: string
+          full_name: string
+          has_prior_experience: string
+          id?: string
+          member_since: string
+          occupation?: string | null
+          phone: string
+          prior_experience_detail?: string | null
+          safety_understanding: string
+          why_host: string
+        }
+        Update: {
+          age?: number
+          agree_to_safety?: boolean
+          agree_to_terms?: boolean
+          agree_to_zero_harassment?: boolean
+          availability?: string[]
+          city?: string
+          created_at?: string | null
+          email?: string
+          event_formats?: string[]
+          events_attended?: string
+          full_name?: string
+          has_prior_experience?: string
+          id?: string
+          member_since?: string
+          occupation?: string | null
+          phone?: string
+          prior_experience_detail?: string | null
+          safety_understanding?: string
+          why_host?: string
+        }
+        Relationships: []
+      }
+      host_rating: {
+        Row: {
+          created_at: string | null
+          host_id: string
+          id: string
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          host_id: string
+          id?: string
+          rating: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          host_id?: string
+          id?: string
+          rating?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "host_rating_host_id_fkey"
+            columns: ["host_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "host_profiles_user_id_fkey"
+            foreignKeyName: "host_rating_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      host_reviews: {
+        Row: {
+          created_at: string | null
+          host_id: string
+          id: string
+          is_approved: boolean | null
+          review_text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          host_id: string
+          id?: string
+          is_approved?: boolean | null
+          review_text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          host_id?: string
+          id?: string
+          is_approved?: boolean | null
+          review_text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "host_reviews_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "host_reviews_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -1689,73 +1851,6 @@ export type Database = {
           venue_name?: string | null
         }
         Relationships: []
-      }
-      messages: {
-        Row: {
-          content: string | null
-          conversation_id: string
-          created_at: string | null
-          id: string
-          is_deleted_by_receiver: boolean | null
-          is_deleted_by_sender: boolean | null
-          is_read: boolean | null
-          media_url: string | null
-          message_type: string | null
-          read_at: string | null
-          reply_to_message_id: string | null
-          sender_id: string
-        }
-        Insert: {
-          content?: string | null
-          conversation_id: string
-          created_at?: string | null
-          id?: string
-          is_deleted_by_receiver?: boolean | null
-          is_deleted_by_sender?: boolean | null
-          is_read?: boolean | null
-          media_url?: string | null
-          message_type?: string | null
-          read_at?: string | null
-          reply_to_message_id?: string | null
-          sender_id: string
-        }
-        Update: {
-          content?: string | null
-          conversation_id?: string
-          created_at?: string | null
-          id?: string
-          is_deleted_by_receiver?: boolean | null
-          is_deleted_by_sender?: boolean | null
-          is_read?: boolean | null
-          media_url?: string | null
-          message_type?: string | null
-          read_at?: string | null
-          reply_to_message_id?: string | null
-          sender_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "messages_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_reply_to_message_id_fkey"
-            columns: ["reply_to_message_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       notification_templates: {
         Row: {
@@ -2259,6 +2354,222 @@ export type Database = {
           },
         ]
       }
+      subscription_discount_code_uses: {
+        Row: {
+          applied_at: string | null
+          discount_amount: number
+          discount_code_id: string
+          final_amount: number
+          id: string
+          original_amount: number
+          razorpay_order_id: string | null
+          razorpay_subscription_id: string | null
+          user_id: string | null
+          user_subscription_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          discount_amount: number
+          discount_code_id: string
+          final_amount: number
+          id?: string
+          original_amount: number
+          razorpay_order_id?: string | null
+          razorpay_subscription_id?: string | null
+          user_id?: string | null
+          user_subscription_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          discount_amount?: number
+          discount_code_id?: string
+          final_amount?: number
+          id?: string
+          original_amount?: number
+          razorpay_order_id?: string | null
+          razorpay_subscription_id?: string | null
+          user_id?: string | null
+          user_subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_discount_code_uses_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_discount_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_discount_code_uses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_discount_code_uses_user_subscription_id_fkey"
+            columns: ["user_subscription_id"]
+            isOneToOne: false
+            referencedRelation: "user_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_discount_codes: {
+        Row: {
+          applicable_plan_ids: string[] | null
+          code: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          discount_type: string
+          discount_value: number
+          duration_in_cycles: number | null
+          duration_type: string
+          id: string
+          is_active: boolean | null
+          max_discount_amount: number | null
+          max_uses: number | null
+          min_order_amount: number | null
+          razorpay_offer_id: string | null
+          updated_at: string | null
+          used_count: number | null
+          uses_per_user: number | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          applicable_plan_ids?: string[] | null
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          discount_type: string
+          discount_value: number
+          duration_in_cycles?: number | null
+          duration_type?: string
+          id?: string
+          is_active?: boolean | null
+          max_discount_amount?: number | null
+          max_uses?: number | null
+          min_order_amount?: number | null
+          razorpay_offer_id?: string | null
+          updated_at?: string | null
+          used_count?: number | null
+          uses_per_user?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          applicable_plan_ids?: string[] | null
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          duration_in_cycles?: number | null
+          duration_type?: string
+          id?: string
+          is_active?: boolean | null
+          max_discount_amount?: number | null
+          max_uses?: number | null
+          min_order_amount?: number | null
+          razorpay_offer_id?: string | null
+          updated_at?: string | null
+          used_count?: number | null
+          uses_per_user?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_discount_codes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          amount: number
+          amount_paid: number | null
+          created_at: string | null
+          currency: string | null
+          ends_at: string
+          expiry_date: string | null
+          host_id: string | null
+          id: string
+          metadata: Json | null
+          plan_type: string
+          rate_limit_events: number | null
+          razorpay_payment_id: string | null
+          razorpay_subscription_id: string | null
+          start_date: string | null
+          starts_at: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          amount_paid?: number | null
+          created_at?: string | null
+          currency?: string | null
+          ends_at: string
+          expiry_date?: string | null
+          host_id?: string | null
+          id?: string
+          metadata?: Json | null
+          plan_type: string
+          rate_limit_events?: number | null
+          razorpay_payment_id?: string | null
+          razorpay_subscription_id?: string | null
+          start_date?: string | null
+          starts_at?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          amount_paid?: number | null
+          created_at?: string | null
+          currency?: string | null
+          ends_at?: string
+          expiry_date?: string | null
+          host_id?: string | null
+          id?: string
+          metadata?: Json | null
+          plan_type?: string
+          rate_limit_events?: number | null
+          razorpay_payment_id?: string | null
+          razorpay_subscription_id?: string | null
+          start_date?: string | null
+          starts_at?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tags: {
         Row: {
           created_at: string | null
@@ -2289,6 +2600,7 @@ export type Database = {
           currency: string | null
           description: string | null
           event_id: string
+          external_tier_id: string | null
           id: string
           is_active: boolean | null
           is_visible: boolean | null
@@ -2302,16 +2614,17 @@ export type Database = {
           sale_start_at: string | null
           sold_count: number | null
           sort_order: number | null
+          tier_category: string | null
           tier_type: string | null
           total_quantity: number
           updated_at: string | null
-          tier_category: string | null
         }
         Insert: {
           created_at?: string | null
           currency?: string | null
           description?: string | null
           event_id: string
+          external_tier_id?: string | null
           id?: string
           is_active?: boolean | null
           is_visible?: boolean | null
@@ -2325,16 +2638,17 @@ export type Database = {
           sale_start_at?: string | null
           sold_count?: number | null
           sort_order?: number | null
+          tier_category?: string | null
           tier_type?: string | null
           total_quantity: number
           updated_at?: string | null
-          tier_category?: string | null
         }
         Update: {
           created_at?: string | null
           currency?: string | null
           description?: string | null
           event_id?: string
+          external_tier_id?: string | null
           id?: string
           is_active?: boolean | null
           is_visible?: boolean | null
@@ -2348,10 +2662,10 @@ export type Database = {
           sale_start_at?: string | null
           sold_count?: number | null
           sort_order?: number | null
+          tier_category?: string | null
           tier_type?: string | null
           total_quantity?: number
           updated_at?: string | null
-          tier_category?: string | null
         }
         Relationships: [
           {
@@ -2496,6 +2810,42 @@ export type Database = {
           },
         ]
       }
+      user_follows: {
+        Row: {
+          created_at: string | null
+          followed_id: string
+          follower_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          followed_id: string
+          follower_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          followed_id?: string
+          follower_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "host_follows_followed_id_fkey"
+            columns: ["followed_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "host_follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_oauth_accounts: {
         Row: {
           access_token: string | null
@@ -2578,6 +2928,108 @@ export type Database = {
           },
         ]
       }
+      user_subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          cancel_reason: string | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          discount_amount: number | null
+          discount_code_id: string | null
+          discount_duration_type: string | null
+          email_verified_at: string | null
+          id: string
+          is_verified: boolean | null
+          notes: Json | null
+          original_amount: number | null
+          plan_type: string | null
+          razorpay_customer_id: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          razorpay_plan_id: string | null
+          razorpay_subscription_id: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+          verification_token: string | null
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          cancel_reason?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          discount_amount?: number | null
+          discount_code_id?: string | null
+          discount_duration_type?: string | null
+          email_verified_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          notes?: Json | null
+          original_amount?: number | null
+          plan_type?: string | null
+          razorpay_customer_id?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_plan_id?: string | null
+          razorpay_subscription_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          verification_token?: string | null
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          cancel_reason?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          discount_amount?: number | null
+          discount_code_id?: string | null
+          discount_duration_type?: string | null
+          email_verified_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          notes?: Json | null
+          original_amount?: number | null
+          plan_type?: string | null
+          razorpay_customer_id?: string | null
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_plan_id?: string | null
+          razorpay_subscription_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          verification_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_discount_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_tokens: {
         Row: {
           created_at: string | null
@@ -2616,166 +3068,215 @@ export type Database = {
           },
         ]
       }
-      subscriptions: {
-        Row: {
-          amount: number
-          created_at: string | null
-          currency: string | null
-          ends_at: string
-          host_page_id: string
-          id: string
-          plan_type: string
-          razorpay_payment_id: string | null
-          razorpay_subscription_id: string | null
-          starts_at: string
-          status: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          currency?: string | null
-          ends_at: string
-          host_page_id: string
-          id?: string
-          plan_type: string
-          razorpay_payment_id?: string | null
-          razorpay_subscription_id?: string | null
-          starts_at?: string
-          status?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          currency?: string | null
-          ends_at?: string
-          host_page_id?: string
-          id?: string
-          plan_type?: string
-          razorpay_payment_id?: string | null
-          razorpay_subscription_id?: string | null
-          starts_at?: string
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subscriptions_host_page_id_fkey"
-            columns: ["host_page_id"]
-            isOneToOne: false
-            referencedRelation: "host_pages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "subscriptions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       users: {
         Row: {
-
           avatar_url: string | null
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_account_verified: boolean | null
+          bank_ifsc: string | null
           bio: string | null
           created_at: string | null
           date_of_birth: string | null
           email: string
           email_verified_at: string | null
+          facebook_url: string | null
+          firebase_uid: string | null
+          follower_count: number | null
+          full_name: string | null
           gender: string | null
+          group_uuid: string | null
+          host_type: string | null
           id: string
+          instagram_handle: string | null
           is_active: boolean | null
+          is_approved: boolean | null
           is_suspended: boolean | null
           is_verified: boolean | null
+          kyc_documents: Json | null
+          kyc_status: string | null
           last_login_at: string | null
           login_count: number | null
           notification_prefs: Json | null
+          organisation_name: string | null
           password_hash: string | null
           phone: string | null
           phone_verified: boolean | null
           preferred_currency: string | null
           preferred_language: string | null
           privacy_settings: Json | null
+          razorpay_account_id: string | null
           role: string | null
           suspended_until: string | null
           suspension_reason: string | null
           timezone: string | null
+          total_events_hosted: number | null
+          twitter_handle: string | null
           updated_at: string | null
           username: string
-          full_name: string | null
+          website_url: string | null
+          youtube_url: string | null
         }
         Insert: {
-
           avatar_url?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_account_verified?: boolean | null
+          bank_ifsc?: string | null
           bio?: string | null
           created_at?: string | null
           date_of_birth?: string | null
           email: string
           email_verified_at?: string | null
+          facebook_url?: string | null
+          firebase_uid?: string | null
+          follower_count?: number | null
+          full_name?: string | null
           gender?: string | null
+          group_uuid?: string | null
+          host_type?: string | null
           id?: string
+          instagram_handle?: string | null
           is_active?: boolean | null
+          is_approved?: boolean | null
           is_suspended?: boolean | null
           is_verified?: boolean | null
+          kyc_documents?: Json | null
+          kyc_status?: string | null
           last_login_at?: string | null
           login_count?: number | null
           notification_prefs?: Json | null
+          organisation_name?: string | null
           password_hash?: string | null
           phone?: string | null
           phone_verified?: boolean | null
           preferred_currency?: string | null
           preferred_language?: string | null
           privacy_settings?: Json | null
+          razorpay_account_id?: string | null
           role?: string | null
           suspended_until?: string | null
           suspension_reason?: string | null
           timezone?: string | null
+          total_events_hosted?: number | null
+          twitter_handle?: string | null
           updated_at?: string | null
           username: string
-          full_name?: string | null
+          website_url?: string | null
+          youtube_url?: string | null
         }
         Update: {
-
           avatar_url?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_account_verified?: boolean | null
+          bank_ifsc?: string | null
           bio?: string | null
           created_at?: string | null
           date_of_birth?: string | null
           email?: string
           email_verified_at?: string | null
+          facebook_url?: string | null
+          firebase_uid?: string | null
+          follower_count?: number | null
+          full_name?: string | null
           gender?: string | null
+          group_uuid?: string | null
+          host_type?: string | null
           id?: string
+          instagram_handle?: string | null
           is_active?: boolean | null
+          is_approved?: boolean | null
           is_suspended?: boolean | null
           is_verified?: boolean | null
+          kyc_documents?: Json | null
+          kyc_status?: string | null
           last_login_at?: string | null
           login_count?: number | null
           notification_prefs?: Json | null
+          organisation_name?: string | null
           password_hash?: string | null
           phone?: string | null
           phone_verified?: boolean | null
           preferred_currency?: string | null
           preferred_language?: string | null
           privacy_settings?: Json | null
+          razorpay_account_id?: string | null
           role?: string | null
           suspended_until?: string | null
           suspension_reason?: string | null
           timezone?: string | null
+          total_events_hosted?: number | null
+          twitter_handle?: string | null
           updated_at?: string | null
           username?: string
-          full_name?: string | null
+          website_url?: string | null
+          youtube_url?: string | null
         }
         Relationships: []
+      }
+      venue_partners: {
+        Row: {
+          amenities: Json | null
+          contact_email: string | null
+          contact_phone: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          location_id: string | null
+          rating_avg: number | null
+          rating_count: number | null
+          updated_at: string | null
+          website_url: string | null
+        }
+        Insert: {
+          amenities?: Json | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          location_id?: string | null
+          rating_avg?: number | null
+          rating_count?: number | null
+          updated_at?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          amenities?: Json | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          location_id?: string | null
+          rating_avg?: number | null
+          rating_count?: number | null
+          updated_at?: string | null
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_partners_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       v_events_public: {
         Row: {
+          address_line1: string | null
+          address_line2: string | null
           booking_count: number | null
           category_color: string | null
           category_name: string | null
@@ -2783,19 +3284,34 @@ export type Database = {
           city: string | null
           country: string | null
           cover_image_url: string | null
+          created_at: string | null
+          description: string | null
           end_datetime: string | null
           event_type: string | null
           fts: unknown
+          google_maps_url: string | null
           host_display_name: string | null
           host_logo: string | null
+          host_tagline: string | null
           host_username: string | null
           id: string | null
           interests_count: number | null
           is_featured: boolean | null
+          is_recurring: boolean | null
+          is_sold_out: boolean | null
           is_sponsored: boolean | null
+          latitude: number | null
           likes_count: number | null
+          location_id: string | null
+          longitude: number | null
+          max_capacity: number | null
           max_price: number | null
+          meta_description: string | null
+          meta_title: string | null
           min_price: number | null
+          place_id: string | null
+          postal_code: string | null
+          remaining_spots: number | null
           short_description: string | null
           slug: string | null
           start_datetime: string | null
@@ -2804,40 +3320,59 @@ export type Database = {
           ticketing_mode: string | null
           timezone: string | null
           title: string | null
+          updated_at: string | null
           venue_name: string | null
+          vertical_poster_url: string | null
           views_count: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "events_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_ticket_availability: {
         Row: {
           available: number | null
+          currency: string | null
           event_id: string | null
           is_sold_out: boolean | null
+          price: number | null
           reserved_count: number | null
           sold_count: number | null
           tier_id: string | null
           tier_name: string | null
+          tier_type: string | null
           total_quantity: number | null
         }
         Insert: {
           available?: never
+          currency?: string | null
           event_id?: string | null
           is_sold_out?: never
+          price?: number | null
           reserved_count?: number | null
           sold_count?: number | null
           tier_id?: string | null
           tier_name?: string | null
+          tier_type?: string | null
           total_quantity?: number | null
         }
         Update: {
           available?: never
+          currency?: string | null
           event_id?: string | null
           is_sold_out?: never
+          price?: number | null
           reserved_count?: number | null
           sold_count?: number | null
           tier_id?: string | null
           tier_name?: string | null
+          tier_type?: string | null
           total_quantity?: number | null
         }
         Relationships: [
@@ -2867,23 +3402,67 @@ export type Database = {
         }
         Returns: undefined
       }
-      confirm_booking_payment_v2: {
+      confirm_booking_payment_v2:
+        | {
+            Args: {
+              p_booking_id: string
+              p_razorpay_method: string
+              p_razorpay_payment_id: string
+              p_razorpay_signature: string
+            }
+            Returns: {
+              r_event_id: string
+              r_ticket_id: string
+              r_ticket_number: string
+            }[]
+          }
+        | {
+            Args: {
+              p_booking_id: string
+              p_razorpay_method?: string
+              p_razorpay_payment_id: string
+              p_razorpay_signature: string
+            }
+            Returns: {
+              r_event_id: string
+              r_ticket_id: string
+              r_ticket_number: string
+            }[]
+          }
+      create_event_complex: {
         Args: {
-          p_booking_id: string
-          p_razorpay_method: string
-          p_razorpay_payment_id: string
-          p_razorpay_signature: string
+          age_restrictions?: Json
+          agenda?: Json
+          cohosts?: Json
+          event_data: Json
+          faqs?: Json
+          tags?: Json
+          ticket_tiers?: Json
         }
-        Returns: {
-          r_event_id: string
-          r_ticket_id: string
-          r_ticket_number: string
-        }[]
+        Returns: string
       }
+      create_pending_booking_v2: {
+        Args: {
+          p_attendee_email: string
+          p_attendee_name: string
+          p_attendee_phone: string
+          p_discount_amount?: number
+          p_event_id: string
+          p_items?: Json
+          p_razorpay_order_id?: string
+          p_subtotal: number
+          p_total_amount: number
+          p_user_id: string
+        }
+        Returns: string
+      }
+      get_user_id_by_email: { Args: { p_email: string }; Returns: string }
+      get_user_role: { Args: never; Returns: string }
       increment_reserved_count: {
         Args: { increment_by: number; tier_id: string }
         Returns: undefined
       }
+      is_admin: { Args: { user_id: string }; Returns: boolean }
       join_waitlist_atomic: {
         Args: { p_event_id: string; p_tier_id: string; p_user_id: string }
         Returns: {
@@ -2892,10 +3471,19 @@ export type Database = {
           r_was_already_on_list: boolean
         }[]
       }
+      provision_host_auth_user: {
+        Args: { target_email: string; target_id: string }
+        Returns: undefined
+      }
+      release_expired_locks_for_event: {
+        Args: { p_event_id: string }
+        Returns: undefined
+      }
       set_event_interest: {
         Args: { p_event_id: string; p_interest_type: string; p_user_id: string }
         Returns: Json
       }
+      slugify: { Args: { value: string }; Returns: string }
       submit_event_review: {
         Args: {
           p_event_id: string
@@ -2908,6 +3496,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      sync_host_auth_id: {
+        Args: { target_email: string; target_id: string }
+        Returns: undefined
       }
       toggle_event_like: {
         Args: { p_event_id: string; p_user_id: string }
@@ -2943,12 +3535,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2972,11 +3564,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2997,11 +3589,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3022,11 +3614,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3039,11 +3631,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3057,4 +3649,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

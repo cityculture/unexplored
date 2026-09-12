@@ -6,7 +6,6 @@ const SM_SUPABASE_URL = process.env.STRANGERMINGLE_SUPABASE_URL || 'https://uuan
 const SM_SERVICE_ROLE_KEY = process.env.STRANGERMINGLE_SUPABASE_SERVICE_ROLE_KEY
 
 const CC_HOST_USER_ID = 'bc4a046a-2dfa-480a-9983-7f473c81bf57' // strangermingleteam@gmail.com
-const CC_HOST_PAGE_ID = '40f05b7d-b254-4212-b89d-00ff0af1f14f' // Stranger Mingle Host Page
 
 const CATEGORY_MAP: Record<string, string> = {
   'meetups': 'meetups-networking',
@@ -132,7 +131,6 @@ export async function GET(request: NextRequest) {
         title: smEvent.title,
         slug: slug,
         host_id: CC_HOST_USER_ID,
-        host_page_id: CC_HOST_PAGE_ID,
         category_id: categoryId,
         location_id: locationId,
         short_description: smEvent.short_description || smEvent.title,

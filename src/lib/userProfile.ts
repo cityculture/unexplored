@@ -243,7 +243,7 @@ export async function findOrCreateUserByContact(data: {
                 id: uuidv4(),
                 email,
                 phone: phone || null,
-                username: `${baseUsername}${suffix}`.slice(0, 60): `Member_${Math.floor(1000 + Math.random() * 9000)}`,
+                username: `${baseUsername}${suffix}`.slice(0, 60),
                 role: 'member',
                 updated_at: new Date().toISOString(),
             })

@@ -11,16 +11,15 @@ export async function GET(
   try {
     const supabase = supabaseAdmin
     const { data: host, error } = await supabase
-      .from('host_pages')
+      .from('users')
       .select(`
-        display_name,
-        tagline,
-        logo_url,
-        rating_avg,
-        follower_count,
-        user:users!host_profiles_user_id_fkey ( avatar_url )
+        organisation_name,
+        full_name,
+        bio,
+        avatar_url,
+        follower_count
       `)
-      .eq('users!host_profiles_user_id_fkey.username', username)
+      .eq('username', username)
       .single()
 
     if (error || !host) {
@@ -28,12 +27,11 @@ export async function GET(
     }
 
     const hostData = host as unknown as {
-      display_name: string | null;
-      tagline: string | null;
-      logo_url: string | null;
-      rating_avg: number | null;
+      organisation_name: string | null;
+      full_name: string | null;
+      bio: string | null;
+      avatar_url: string | null;
       follower_count: number | null;
-      user: { avatar_url: string | null } | null;
     }
 
     return new ImageResponse(
@@ -64,7 +62,7 @@ export async function GET(
             }}
           >
             <img
-              src={hostData.logo_url || hostData.user?.avatar_url || 'https://www.cityculture.in/placeholder-avatar.jpg'}
+              src={hostData.avatar_url || 'https://www.cityculture.in/placeholder-avatar.jpg'}
               style={{
                 width: '180px',
                 height: '180px',
@@ -75,18 +73,14 @@ export async function GET(
             />
             
             <div style={{ fontSize: '56px', fontWeight: '900', color: '#fff', marginBottom: '10px', textAlign: 'center' }}>
-              {hostData.display_name}
+              {hostData.organisation_name || hostData.full_name}
             </div>
             
             <div style={{ fontSize: '28px', color: '#a5b4fc', marginBottom: '40px', textAlign: 'center' }}>
-              {hostData.tagline || 'Verified Host on City Culture'}
+              {hostData.bio || 'Verified Host on City Culture'}
             </div>
  
             <div style={{ display: 'flex', gap: '60px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ fontSize: '36px', fontWeight: '800', color: '#fff' }}>{hostData.rating_avg} ★</div>
-                <div style={{ fontSize: '18px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Rating</div>
-              </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <div style={{ fontSize: '36px', fontWeight: '800', color: '#fff' }}>{hostData.follower_count}</div>
                 <div style={{ fontSize: '18px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Followers</div>

@@ -1,4 +1,3 @@
-export * from './chatService';
 export * from './groupService';
 export * from './userProfile';
 export * from './activate-subscription';

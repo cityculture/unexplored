@@ -101,6 +101,24 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
+    // 0. Verification for Paid Events
+    const hasPaidTier = body.ticket_tiers && body.ticket_tiers.some((t: any) => t.tier_type === 'paid' && parseFloat(t.price) > 0)
+    if (hasPaidTier) {
+      const { data: hostUser, error: hostError } = await supabaseAdmin
+        .from('users')
+        .select('bank_account_number, bank_ifsc, bank_account_name')
+        .eq('id', supabaseUid)
+        .single()
+
+      if (hostError || !hostUser) {
+        return NextResponse.json({ error: 'Failed to fetch host details' }, { status: 500 })
+      }
+
+      if (!hostUser.bank_account_number || !hostUser.bank_ifsc || !hostUser.bank_account_name) {
+        return NextResponse.json({ error: 'You must add your bank account details in Billing settings before publishing a paid event.' }, { status: 400 })
+      }
+    }
+
     // 1. Create Location if provided
     let locationId: string | null = null
     if (body.location) {
@@ -128,7 +146,6 @@ export async function POST(request: NextRequest) {
       .insert({
         title: body.title,
         host_id: supabaseUid,
-        host_page_id: body.host_page_id,
         category_id: body.category_id,
         location_id: locationId,
         event_type: body.event_type,

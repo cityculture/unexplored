@@ -145,10 +145,10 @@ export async function handleSubscriptionCharged(payload: RazorpayPayload & { sub
   const endsAt = new Date(currentEnd * 1000).toISOString()
   const startsAt = new Date(subscription.entity.current_start * 1000).toISOString()
 
-  // 1. Fetch existing subscription to verify host_page_id and user_id
+  // 1. Fetch existing subscription to verify host_id and user_id
   const { data: existingSub, error: fetchError } = await supabaseAdmin
     .from('subscriptions')
-    .select('user_id, host_page_id, plan_type')
+    .select('user_id, host_id, plan_type')
     .eq('razorpay_subscription_id', razorpay_subscription_id)
     .maybeSingle()
 
@@ -156,14 +156,14 @@ export async function handleSubscriptionCharged(payload: RazorpayPayload & { sub
 
   if (!existingSub) {
     // This might be the first charge where the webhook arrives before client-side redirection
-    if (subscription.entity.notes?.host_page_id && subscription.entity.notes?.user_id) {
+    if (subscription.entity.notes?.host_id && subscription.entity.notes?.user_id) {
        console.log(`Creating missing subscription record from webhook notes for ${razorpay_subscription_id}`)
        
        const { error: insertError } = await supabaseAdmin
          .from('subscriptions')
          .insert({
            user_id: subscription.entity.notes.user_id,
-           host_page_id: subscription.entity.notes.host_page_id,
+           host_id: subscription.entity.notes.host_id,
            plan_type: subscription.entity.notes.plan_type || 'monthly',
            amount: amount,
            currency: 'INR',
